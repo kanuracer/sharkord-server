@@ -1,6 +1,7 @@
 import { t } from '../utils/trpc';
 import { categoriesRouter } from './categories';
 import { channelsRouter } from './channels';
+import { desktopRouter } from './desktop';
 import { dmsRouter } from './dms';
 import { emojisRouter } from './emojis';
 import { filesRouter } from './files';
@@ -14,6 +15,7 @@ import { voiceRouter } from './voice';
 
 const appRouter = t.router({
   others: othersRouter,
+  desktop: desktopRouter,
   messages: messagesRouter,
   users: usersRouter,
   channels: channelsRouter,

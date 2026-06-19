@@ -1,7 +1,14 @@
 import { describe, expect, test } from 'bun:test';
+import { eq } from 'drizzle-orm';
 import { initTest } from '../../__tests__/helpers';
 import { tdb } from '../../__tests__/setup';
-import { settings } from '../../db/schema';
+import {
+  channelReadStates,
+  channels,
+  directMessages,
+  messages,
+  settings
+} from '../../db/schema';
 
 describe('dms router', () => {
   test('should create a direct message channel and allow messaging', async () => {
@@ -84,4 +91,100 @@ describe('dms router', () => {
       'Direct messages are disabled on this server'
     );
   });
+
+  test('should delete a direct message conversation for participants', async () => {
+    const { caller: callerA } = await initTest(3);
+    const { caller: callerB } = await initTest(4);
+
+    await callerB.channels.markAsRead({ channelId: 3 });
+
+    await callerA.dms.delete({ channelId: 3 });
+
+    const listA = await callerA.dms.get();
+    const listB = await callerB.dms.get();
+
+    expect(listA.some((dm) => dm.channelId === 3)).toBe(false);
+    expect(listB.some((dm) => dm.channelId === 3)).toBe(false);
+    expect(
+      await tdb.select().from(channels).where(eq(channels.id, 3)).get()
+    ).toBeUndefined();
+    expect(
+      await tdb
+        .select()
+        .from(directMessages)
+        .where(eq(directMessages.channelId, 3))
+        .get()
+    ).toBeUndefined();
+    expect(
+      await tdb.select().from(messages).where(eq(messages.channelId, 3))
+    ).toHaveLength(0);
+    expect(
+      await tdb
+        .select()
+        .from(channelReadStates)
+        .where(eq(channelReadStates.channelId, 3))
+    ).toHaveLength(0);
+  });
+
+  test('should reject deleting a DM when user is not a participant', async () => {
+    const { caller } = await initTest(1);
+
+    await expect(caller.dms.delete({ channelId: 3 })).rejects.toThrow(
+      'You are not a participant in this DM channel'
+    );
+    expect(
+      await tdb
+        .select()
+        .from(directMessages)
+        .where(eq(directMessages.channelId, 3))
+        .get()
+    ).toBeDefined();
+  });
+
+  test('should reject deleting a non-DM channel through dms.delete', async () => {
+    const { caller } = await initTest(1);
+
+    await expect(caller.dms.delete({ channelId: 1 })).rejects.toThrow(
+      'Direct message not found'
+    );
+    expect(
+      await tdb.select().from(channels).where(eq(channels.id, 1)).get()
+    ).toBeDefined();
+  });
+
+  test('should reject deleting direct message when direct messages are disabled', async () => {
+    const { caller } = await initTest(3);
+
+    await tdb
+      .update(settings)
+      .set({
+        directMessagesEnabled: false
+      })
+      .execute();
+
+    await expect(caller.dms.delete({ channelId: 3 })).rejects.toThrow(
+      'Direct messages are disabled on this server'
+    );
+    expect(
+      await tdb
+        .select()
+        .from(directMessages)
+        .where(eq(directMessages.channelId, 3))
+        .get()
+    ).toBeDefined();
+  });
+
+  test('should expose desktop capabilities for Sharkord Desktop compatibility', async () => {
+    const { caller } = await initTest(1);
+
+    await expect(caller.desktop.capabilities()).resolves.toEqual({
+      flavor: 'kanuracer',
+      capabilities: {
+        directMessageDelete: true,
+        ownerToken: true,
+        serverSelfUpdate: true
+      }
+    });
+  });
+
 });
