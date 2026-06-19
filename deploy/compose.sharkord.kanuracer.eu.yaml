@@ -1,0 +1,31 @@
+services:
+  sharkord:
+    image: ghcr.io/kanuracer/sharkord-server:0.0.22-kr.1
+    container_name: sharkord
+    restart: unless-stopped
+    ports:
+      - "40000:40000/tcp"
+      - "40000:40000/udp"
+    environment:
+      TZ: "Europe/Berlin"
+      SHARKORD_PORT: "4991"
+      SHARKORD_DEBUG: "false"
+      SHARKORD_AUTOUPDATE: "false"
+      SHARKORD_WEBRTC_PORT: "40000"
+      SHARKORD_WEBRTC_ANNOUNCED_ADDRESS: "sharkord.kanuracer.eu"
+      SHARKORD_WEBRTC_MAX_BITRATE: "30000000"
+    volumes:
+      - /data/sharkord/config:/home/bun/.config/sharkord
+    networks:
+      - npm_net
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/4991'"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+networks:
+  npm_net:
+    external: true
+    name: npm_default
