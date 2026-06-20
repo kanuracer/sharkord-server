@@ -30,6 +30,7 @@ import { VoiceRuntime } from '../runtimes/voice';
 import { invariant } from './invariant';
 import { pubsub } from './pubsub';
 import type { Context } from './trpc';
+import { isConnectionTokenAuthenticated } from './ws-auth-sessions';
 
 let wss: WebSocketServer | undefined;
 
@@ -60,6 +61,7 @@ const createContext = async ({
   const { token } = info.connectionParams as TConnectionParams;
 
   const decodedUser = await getUserByToken(token);
+  const authenticated = await isConnectionTokenAuthenticated(token);
 
   invariant(decodedUser, {
     code: 'UNAUTHORIZED',
@@ -227,7 +229,7 @@ const createContext = async ({
     pubsub,
     token,
     user: decodedUser,
-    authenticated: false,
+    authenticated,
     userId: decodedUser.id,
     handshakeHash: '',
     currentVoiceChannelId: undefined,

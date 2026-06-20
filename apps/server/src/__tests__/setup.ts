@@ -7,6 +7,7 @@ import { DATA_PATH } from '../helpers/paths';
 import { createHttpServer } from '../http';
 import { loadMediasoup } from '../utils/mediasoup';
 import { clearRateLimitersForTests } from '../utils/rate-limiters/rate-limiter';
+import { clearAuthenticatedConnectionTokensForTests } from '../utils/ws-auth-sessions';
 import { DRIZZLE_PATH, setTestDb } from './mock-db';
 import { seedTestDb } from './seed';
 
@@ -58,6 +59,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   clearRateLimitersForTests();
+  clearAuthenticatedConnectionTokensForTests();
 
   if (sqlite) {
     try {

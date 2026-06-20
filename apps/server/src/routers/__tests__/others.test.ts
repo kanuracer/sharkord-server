@@ -1,5 +1,6 @@
 import type { TTempFile } from '@sharkord/shared';
 import { describe, expect, test } from 'bun:test';
+import { createMockContext } from '../../__tests__/context';
 import {
   getCaller,
   initTest,
@@ -7,6 +8,7 @@ import {
   uploadFile
 } from '../../__tests__/helpers';
 import { TEST_SECRET_TOKEN } from '../../__tests__/seed';
+import { appRouter } from '..';
 
 describe('others router', () => {
   test('should throw when user tries to join with no handshake', async () => {
@@ -47,6 +49,30 @@ describe('others router', () => {
     for (const user of result.users) {
       expect(user._identity).toBeUndefined();
     }
+  });
+
+  test('should preserve joined authentication for the same websocket token after reconnect', async () => {
+    const joiningUserId = 1;
+    const { caller, mockedToken } = await getCaller(joiningUserId);
+    const { handshakeHash } = await caller.others.handshake();
+
+    const unauthenticatedReconnectCaller = appRouter.createCaller(
+      await createMockContext({ customToken: mockedToken })
+    );
+
+    await expect(
+      unauthenticatedReconnectCaller.others.getSettings()
+    ).rejects.toThrow('You must be authenticated to perform this action.');
+
+    await caller.others.joinServer({
+      handshakeHash
+    });
+
+    const reconnectedCaller = appRouter.createCaller(
+      await createMockContext({ customToken: mockedToken })
+    );
+
+    await expect(reconnectedCaller.others.getSettings()).resolves.toBeDefined();
   });
 
   test('should ask for password if server has one set', async () => {

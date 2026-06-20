@@ -22,6 +22,7 @@ import { enqueueLogin } from '../../queues/logins';
 import { VoiceRuntime } from '../../runtimes/voice';
 import { invariant } from '../../utils/invariant';
 import { rateLimitedProcedure, t } from '../../utils/trpc';
+import { markConnectionTokenAuthenticated } from '../../utils/ws-auth-sessions';
 
 const joinServerRoute = rateLimitedProcedure(t.procedure, {
   maxRequests: 5,
@@ -67,6 +68,7 @@ const joinServerRoute = rateLimitedProcedure(t.procedure, {
     });
 
     ctx.authenticated = true;
+    await markConnectionTokenAuthenticated(ctx.token);
     ctx.setWsUserId(ctx.user.id);
 
     const [
