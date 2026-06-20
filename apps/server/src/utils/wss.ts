@@ -19,6 +19,7 @@ import { WebSocket, WebSocketServer } from 'ws';
 import { db } from '../db';
 import { getAllChannelUserPermissions } from '../db/queries/channels';
 import { isUserDmParticipant } from '../db/queries/dms';
+import { hasUserJoinedBefore } from '../db/queries/logins';
 import { getUserById, getUserByToken } from '../db/queries/users';
 import { channels } from '../db/schema';
 import { getWsInfo } from '../helpers/get-ws-info';
@@ -61,7 +62,6 @@ const createContext = async ({
   const { token } = info.connectionParams as TConnectionParams;
 
   const decodedUser = await getUserByToken(token);
-  const authenticated = await isConnectionTokenAuthenticated(token);
 
   invariant(decodedUser, {
     code: 'UNAUTHORIZED',
@@ -72,6 +72,10 @@ const createContext = async ({
     code: 'FORBIDDEN',
     message: 'User is banned'
   });
+
+  const authenticated =
+    (await isConnectionTokenAuthenticated(token)) ||
+    (await hasUserJoinedBefore(decodedUser.id));
 
   const hasPermission = async (targetPermission: Permission | Permission[]) => {
     const user = await getUserById(decodedUser.id);

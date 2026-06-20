@@ -8,6 +8,9 @@ import {
   uploadFile
 } from '../../__tests__/helpers';
 import { TEST_SECRET_TOKEN } from '../../__tests__/seed';
+import { db } from '../../db';
+import { logins } from '../../db/schema';
+import { clearAuthenticatedConnectionTokensForTests } from '../../utils/ws-auth-sessions';
 import { appRouter } from '..';
 
 describe('others router', () => {
@@ -67,6 +70,25 @@ describe('others router', () => {
     await caller.others.joinServer({
       handshakeHash
     });
+
+    const reconnectedCaller = appRouter.createCaller(
+      await createMockContext({ customToken: mockedToken })
+    );
+
+    await expect(reconnectedCaller.others.getSettings()).resolves.toBeDefined();
+  });
+
+  test('should restore joined authentication for a previously joined user after server restart', async () => {
+    const joiningUserId = 1;
+    const { mockedToken } = await getCaller(joiningUserId);
+
+    await db.insert(logins).values({
+      userId: joiningUserId,
+      ip: '127.0.0.1',
+      createdAt: Date.now()
+    });
+
+    clearAuthenticatedConnectionTokensForTests();
 
     const reconnectedCaller = appRouter.createCaller(
       await createMockContext({ customToken: mockedToken })
