@@ -131,7 +131,7 @@ const joinServerRoute = rateLimitedProcedure(t.procedure, {
       .set({ lastLoginAt: Date.now() })
       .where(eq(users.id, ctx.user.id));
 
-    enqueueLogin(ctx.user.id, connectionInfo);
+    await enqueueLogin(ctx.user.id, connectionInfo);
     enqueueActivityLog({
       type: ActivityLogType.USER_JOINED,
       userId: ctx.user.id,

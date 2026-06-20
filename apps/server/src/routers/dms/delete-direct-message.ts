@@ -1,10 +1,11 @@
-import { ServerEvents } from '@sharkord/shared';
+import { ActivityLogType, ServerEvents } from '@sharkord/shared';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../../db';
 import { publishChannelPermissions } from '../../db/publishers';
 import { getSettings } from '../../db/queries/server';
 import { channels, directMessages } from '../../db/schema';
+import { enqueueActivityLog } from '../../queues/activity-log';
 import { VoiceRuntime } from '../../runtimes/voice';
 import { invariant } from '../../utils/invariant';
 import { protectedProcedure } from '../../utils/trpc';
@@ -70,6 +71,15 @@ const deleteDirectMessageRoute = protectedProcedure
       ServerEvents.CHANNEL_DELETE,
       removedChannel.id
     );
+
+    enqueueActivityLog({
+      type: ActivityLogType.DELETED_CHANNEL,
+      userId: ctx.user.id,
+      details: {
+        channelId: removedChannel.id,
+        channelName: 'Direct Message'
+      }
+    });
 
     await publishChannelPermissions(participants);
   });

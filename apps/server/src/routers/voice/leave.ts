@@ -10,7 +10,9 @@ import { protectedProcedure } from '../../utils/trpc';
 const leaveVoiceRoute = protectedProcedure.mutation(async ({ ctx }) => {
   await ctx.needsPermission(Permission.JOIN_VOICE_CHANNELS);
 
-  invariant(ctx.currentVoiceChannelId, {
+  const runtime = VoiceRuntime.findRuntimeByUserId(ctx.user.id);
+
+  invariant(runtime, {
     code: 'BAD_REQUEST',
     message: 'User is not in a voice channel'
   });
@@ -18,7 +20,7 @@ const leaveVoiceRoute = protectedProcedure.mutation(async ({ ctx }) => {
   const channel = await db
     .select()
     .from(channels)
-    .where(eq(channels.id, ctx.currentVoiceChannelId))
+    .where(eq(channels.id, runtime.id))
     .get();
 
   invariant(channel, {
@@ -31,13 +33,6 @@ const leaveVoiceRoute = protectedProcedure.mutation(async ({ ctx }) => {
     message: 'Channel is not a voice channel'
   });
 
-  const runtime = VoiceRuntime.findById(ctx.currentVoiceChannelId);
-
-  invariant(runtime, {
-    code: 'INTERNAL_SERVER_ERROR',
-    message: 'Voice runtime not found for this channel'
-  });
-
   const userInChannel = runtime.getUser(ctx.user.id);
 
   invariant(userInChannel, {
@@ -48,7 +43,7 @@ const leaveVoiceRoute = protectedProcedure.mutation(async ({ ctx }) => {
   runtime.removeUser(ctx.user.id);
 
   ctx.pubsub.publish(ServerEvents.USER_LEAVE_VOICE, {
-    channelId: ctx.currentVoiceChannelId,
+    channelId: runtime.id,
     userId: ctx.user.id
   });
   ctx.currentVoiceChannelId = undefined;

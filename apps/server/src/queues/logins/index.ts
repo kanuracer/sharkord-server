@@ -13,30 +13,52 @@ const loginsQueue = new Queue({
 
 loginsQueue.autostart = true;
 
-const enqueueLogin = (userId: number, info: TConnectionInfo | undefined) => {
-  loginsQueue.push(async (callback) => {
-    if (!info) {
-      logger.warn('No connection info provided for login of user %d', userId);
-      callback?.();
-      return;
-    }
-    const { ip, ...rest } = info;
-    const ipInfo = ip ? await getIpInfo(ip) : undefined;
-
+const recordLogin = async (
+  userId: number,
+  info: TConnectionInfo | undefined
+) => {
+  if (!info) {
+    logger.warn('No connection info provided for login of user %d', userId);
     await db
       .insert(logins)
       .values({
         userId,
-        ip,
-        ...rest,
-        ...ipInfo,
         createdAt: Date.now()
       })
       .returning()
       .get();
+    return;
+  }
 
-    callback?.();
+  const { ip, ...rest } = info;
+  const ipInfo = ip ? await getIpInfo(ip) : undefined;
+
+  await db
+    .insert(logins)
+    .values({
+      userId,
+      ip,
+      ...rest,
+      ...ipInfo,
+      createdAt: Date.now()
+    })
+    .returning()
+    .get();
+};
+
+const enqueueLogin = (userId: number, info: TConnectionInfo | undefined) => {
+  return new Promise<void>((resolve, reject) => {
+    loginsQueue.push(async (callback) => {
+      try {
+        await recordLogin(userId, info);
+        resolve();
+        callback?.();
+      } catch (error) {
+        reject(error);
+        callback?.(error as Error);
+      }
+    });
   });
 };
 
-export { enqueueLogin };
+export { enqueueLogin, recordLogin };

@@ -182,7 +182,8 @@ describe('dms router', () => {
       capabilities: {
         directMessageDelete: true,
         ownerToken: true,
-        serverSelfUpdate: true
+        serverSelfUpdate: true,
+        voiceUserMove: true
       }
     });
   });

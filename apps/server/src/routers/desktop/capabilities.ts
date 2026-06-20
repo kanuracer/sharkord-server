@@ -5,7 +5,8 @@ const capabilitiesRoute = protectedProcedure.query(() => ({
   capabilities: {
     directMessageDelete: true,
     ownerToken: true,
-    serverSelfUpdate: true
+    serverSelfUpdate: true,
+    voiceUserMove: true
   }
 }));
 

@@ -18,6 +18,7 @@ import {
 import { getProducersRoute } from './get-producers';
 import { joinVoiceRoute } from './join';
 import { leaveVoiceRoute } from './leave';
+import { moveUserRoute } from './move-user';
 import { produceRoute } from './produce';
 import { setConsumerQualityRoute } from './set-consumer-quality';
 import { updateVoiceStateRoute } from './update-state';
@@ -26,6 +27,7 @@ export const voiceRouter = t.router({
   join: joinVoiceRoute,
   leave: leaveVoiceRoute,
   updateState: updateVoiceStateRoute,
+  moveUser: moveUserRoute,
   createProducerTransport: createProducerTransportRoute,
   connectProducerTransport: connectProducerTransportRoute,
   createConsumerTransport: createConsumerTransportRoute,
