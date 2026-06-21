@@ -25,6 +25,8 @@ exposeReact();
 exposeLibs();
 exposePluginStore();
 
+document.documentElement.dataset.sharkordVersion = VITE_APP_VERSION;
+
 await i18nReady;
 
 createRoot(document.getElementById('root')!).render(

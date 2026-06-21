@@ -1,6 +1,6 @@
 services:
   sharkord:
-    image: ghcr.io/kanuracer/sharkord-server:0.0.22-kr.6
+    image: ghcr.io/kanuracer/sharkord-server:0.0.22-kr.7
     container_name: sharkord
     restart: unless-stopped
     ports:

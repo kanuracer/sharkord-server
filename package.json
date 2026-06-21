@@ -1,6 +1,6 @@
 {
   "name": "sharkord",
-  "version": "0.0.22",
+  "version": "0.0.22-kr.7",
   "private": true,
   "workspaces": [
     "apps/*",
