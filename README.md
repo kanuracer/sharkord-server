@@ -28,18 +28,9 @@ Current fork additions:
 
 Sharkord is a self-hosted real-time communication server with web UI, API, chat, voice, video, and screen sharing support.
 
-## Feature overview
+## Kanuracer fork features
 
-### Core server
-
-- Web UI and tRPC API for self-hosted real-time chat.
-- Channels, categories, invites, direct messages, files, custom emojis, message search, pins, reactions, and threads.
-- Role and permission management for members, channels, categories, moderation actions, and media controls.
-- Voice rooms with WebRTC audio/video/screen sharing through Mediasoup.
-- Plugin management, plugin settings, plugin logs, and slash-command execution.
-- Persistent server settings, storage settings, server logo, and update status endpoints.
-
-### Kanuracer fork additions
+This section lists only features added by the `kanuracer/sharkord-server` fork on top of upstream Sharkord.
 
 - Public multi-arch GHCR images with versioned tags, `latest`, and `kr-main`.
 - Docker entrypoint with persistent config directory support and optional `PUID`/`PGID` remapping for mounted volumes.
@@ -47,7 +38,15 @@ Sharkord is a self-hosted real-time communication server with web UI, API, chat,
 - Direct-message conversation deletion support for compatible clients.
 - Owner-token and server self-update routes exposed through the desktop capability gate.
 - Voice user move support plus `Move members` role permission for moderators.
-- Fork-aware update checks that track `kanuracer/sharkord-server` releases.
+- Fork-aware update checks that track `kanuracer/sharkord-server` releases instead of upstream Sharkord releases.
+
+## Desktop app
+
+For the native desktop client, use [kanuracer/sharkord-desktop](https://github.com/kanuracer/sharkord-desktop).
+
+The desktop app uses this fork's capability endpoint to enable fork-only features such as direct-message deletion, owner-token/server update actions, and voice user moves when the connected server supports them.
+
+Desktop downloads are published at [kanuracer/sharkord-desktop-releases](https://github.com/kanuracer/sharkord-desktop-releases/releases).
 
 ## Documentation
 
