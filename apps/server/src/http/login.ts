@@ -5,7 +5,8 @@ import {
   type TJoinedUser
 } from '@sharkord/shared';
 import chalk from 'chalk';
-import { eq, isNull, max, sql } from 'drizzle-orm';
+import { randomBytes } from 'crypto';
+import { and, eq, isNull, max, sql } from 'drizzle-orm';
 import http from 'http';
 import jwt from 'jsonwebtoken';
 import z from 'zod';
@@ -20,6 +21,7 @@ import {
   channelReadStates,
   invites,
   messages,
+  userAppPasswords,
   userRoles,
   users
 } from '../db/schema';
@@ -33,6 +35,7 @@ import {
   getClientRateLimitKey,
   getRateLimitRetrySeconds
 } from '../utils/rate-limiters/rate-limiter';
+import { verifyTotpCode } from '../utils/totp';
 import { getJsonBody } from './helpers';
 import { HttpValidationError } from './utils';
 
@@ -46,8 +49,17 @@ const zBody = z.object({
     .string()
     .min(4, 'Password must be at least 4 characters long')
     .max(128),
-  invite: z.string().optional()
+  invite: z.string().optional(),
+  totpCode: z.string().trim().optional(),
+  appPassword: z.string().trim().max(128).optional(),
+  rememberDevice: z.boolean().optional(),
+  deviceName: z.string().trim().max(80).optional()
 });
+
+const generateAppPassword = () =>
+  `shk_app_${randomBytes(32).toString('base64url')}`;
+
+const hashAppPassword = async (token: string) => sha256(token);
 
 const loginRateLimiter = createRateLimiter({
   maxRequests: config.rateLimiters.joinServer.maxRequests,
@@ -259,12 +271,82 @@ const loginRouteHandler = async (
     throw new HttpValidationError('password', 'Invalid password');
   }
 
+  let newAppPassword: string | undefined;
+  let newAppPasswordId: number | undefined;
+
+  if (existingUser.mfaEnabled) {
+    let mfaSatisfiedByAppPassword = false;
+
+    if (data.appPassword) {
+      const appPasswordHash = await hashAppPassword(data.appPassword);
+      const activeAppPasswords = await db
+        .select()
+        .from(userAppPasswords)
+        .where(
+          and(
+            eq(userAppPasswords.userId, existingUser.id),
+            isNull(userAppPasswords.revokedAt)
+          )
+        );
+      const matched = activeAppPasswords.find((row) =>
+        safeCompare(appPasswordHash, row.tokenHash)
+      );
+
+      if (matched) {
+        mfaSatisfiedByAppPassword = true;
+        await db
+          .update(userAppPasswords)
+          .set({ lastUsedAt: Date.now() })
+          .where(eq(userAppPasswords.id, matched.id))
+          .run();
+      }
+    }
+
+    if (!mfaSatisfiedByAppPassword) {
+      if (!existingUser.mfaSecret || !data.totpCode) {
+        throw new HttpValidationError('totpCode', 'Two-factor code required');
+      }
+
+      if (!verifyTotpCode(existingUser.mfaSecret, data.totpCode)) {
+        logger.info(
+          `${chalk.dim('[Auth]')} Failed login attempt for user "${existingUser.identity}" due to invalid two-factor code. (IP: ${connectionInfo?.ip || 'unknown'})`
+        );
+        throw new HttpValidationError('totpCode', 'Invalid two-factor code');
+      }
+
+      if (data.rememberDevice) {
+        newAppPassword = generateAppPassword();
+        const appPassword = await db
+          .insert(userAppPasswords)
+          .values({
+            userId: existingUser.id,
+            name: data.deviceName || 'Sharkord Desktop',
+            tokenHash: await hashAppPassword(newAppPassword),
+            createdAt: Date.now(),
+            lastUsedAt: Date.now(),
+            revokedAt: null
+          })
+          .returning({ id: userAppPasswords.id })
+          .get();
+        newAppPasswordId = appPassword.id;
+      }
+    }
+  }
+
   const token = jwt.sign({ userId: existingUser.id }, await getServerToken(), {
     expiresIn: '604800s' // 7 days
   });
 
   res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ success: true, token }));
+  res.end(
+    JSON.stringify({
+      success: true,
+      token,
+      ...(newAppPassword
+        ? { appPassword: newAppPassword, appPasswordId: newAppPasswordId }
+        : {})
+    })
+  );
 
   return res;
 };

@@ -38,11 +38,13 @@ const Connect = memo(() => {
   const { values, r, setErrors, onChange } = useForm<{
     identity: string;
     password: string;
+    totpCode: string;
     rememberCredentials: boolean;
     autoLogin: boolean;
   }>({
     identity: getLocalStorageItem(LocalStorageKey.IDENTITY) || '',
     password: getLocalStorageItem(LocalStorageKey.USER_PASSWORD) || '',
+    totpCode: '',
     rememberCredentials: !!getLocalStorageItem(
       LocalStorageKey.REMEMBER_CREDENTIALS
     ),
@@ -71,6 +73,7 @@ const Connect = memo(() => {
         body: JSON.stringify({
           identity: values.identity,
           password: values.password,
+          totpCode: values.totpCode || undefined,
           invite: inviteCode,
           autoLogin: values.autoLogin || undefined
         })
@@ -106,6 +109,7 @@ const Connect = memo(() => {
   }, [
     values.identity,
     values.password,
+    values.totpCode,
     values.autoLogin,
     setErrors,
     inviteCode,
@@ -169,6 +173,15 @@ const Connect = memo(() => {
                 autoComplete="current-password"
                 onEnter={onConnectClick}
                 data-testid={TestId.CONNECT_PASSWORD_INPUT}
+              />
+            </Group>
+            <Group label={t('2FA-Code optional')}>
+              <Input
+                {...r('totpCode')}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="123456"
+                onEnter={onConnectClick}
               />
             </Group>
           </form>

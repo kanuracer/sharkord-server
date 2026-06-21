@@ -13,8 +13,10 @@ import {
   roles,
   settings,
   userRoles,
+  userAppPasswords,
   users
 } from '../../db/schema';
+import { generateTotpCode } from '../../utils/totp';
 
 describe('/login', () => {
   test('should successfully login with valid credentials', async () => {
@@ -41,6 +43,109 @@ describe('/login', () => {
 
     expect(data).toHaveProperty('errors');
     expect(data.errors).toHaveProperty('password', 'Invalid password');
+  });
+
+  test('should require and verify TOTP when MFA is enabled', async () => {
+    const secret = 'JBSWY3DPEHPK3PXP';
+    await tdb
+      .update(users)
+      .set({ mfaSecret: secret, mfaEnabled: true, mfaEnabledAt: Date.now() })
+      .where(eq(users.identity, 'testowner'))
+      .run();
+
+    const missingCode = await login('testowner', 'password123');
+    expect(missingCode.status).toBe(400);
+    const missingCodeBody = (await missingCode.json()) as {
+      errors?: { totpCode?: string };
+    };
+    expect(missingCodeBody.errors?.totpCode).toBe('Two-factor code required');
+
+    const invalidCode = await login(
+      'testowner',
+      'password123',
+      undefined,
+      '000000'
+    );
+    expect(invalidCode.status).toBe(400);
+    const invalidCodeBody = (await invalidCode.json()) as {
+      errors?: { totpCode?: string };
+    };
+    expect(invalidCodeBody.errors?.totpCode).toBe('Invalid two-factor code');
+
+    const validCode = await login(
+      'testowner',
+      'password123',
+      undefined,
+      generateTotpCode(secret)
+    );
+    expect(validCode.status).toBe(200);
+    expect(await validCode.json()).toHaveProperty('token');
+
+    await tdb
+      .update(users)
+      .set({ mfaSecret: null, mfaEnabled: false, mfaEnabledAt: null })
+      .where(eq(users.identity, 'testowner'))
+      .run();
+  });
+
+  test('should mint and accept revocable app passwords after valid TOTP', async () => {
+    const secret = 'JBSWY3DPEHPK3PXP';
+    await tdb
+      .update(users)
+      .set({ mfaSecret: secret, mfaEnabled: true, mfaEnabledAt: Date.now() })
+      .where(eq(users.identity, 'testowner'))
+      .run();
+
+    const remembered = await login(
+      'testowner',
+      'password123',
+      undefined,
+      generateTotpCode(secret),
+      { rememberDevice: true, deviceName: 'Desktop test device' }
+    );
+    expect(remembered.status).toBe(200);
+    const rememberedBody = (await remembered.json()) as {
+      token: string;
+      appPassword?: string;
+      appPasswordId?: number;
+    };
+    expect(rememberedBody.token).toBeTruthy();
+    expect(rememberedBody.appPassword).toMatch(/^shk_app_[A-Za-z0-9_-]{32,}$/);
+    expect(typeof rememberedBody.appPasswordId).toBe('number');
+
+    const stored = await tdb
+      .select()
+      .from(userAppPasswords)
+      .where(eq(userAppPasswords.id, rememberedBody.appPasswordId!))
+      .get();
+    expect(stored?.name).toBe('Desktop test device');
+    expect(stored?.tokenHash).not.toBe(rememberedBody.appPassword);
+    expect(stored?.revokedAt).toBeNull();
+
+    const appPasswordLogin = await login('testowner', 'password123', undefined, undefined, {
+      appPassword: rememberedBody.appPassword
+    });
+    expect(appPasswordLogin.status).toBe(200);
+    expect(await appPasswordLogin.json()).toHaveProperty('token');
+
+    await tdb
+      .update(userAppPasswords)
+      .set({ revokedAt: Date.now() })
+      .where(eq(userAppPasswords.id, rememberedBody.appPasswordId!))
+      .run();
+
+    const revokedLogin = await login('testowner', 'password123', undefined, undefined, {
+      appPassword: rememberedBody.appPassword
+    });
+    expect(revokedLogin.status).toBe(400);
+    const revokedBody = (await revokedLogin.json()) as { errors?: { totpCode?: string } };
+    expect(revokedBody.errors?.totpCode).toBe('Two-factor code required');
+
+    await tdb
+      .update(users)
+      .set({ mfaSecret: null, mfaEnabled: false, mfaEnabledAt: null })
+      .where(eq(users.identity, 'testowner'))
+      .run();
   });
 
   test('should auto-register new user when allowNewUsers is true', async () => {

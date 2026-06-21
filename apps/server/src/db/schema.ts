@@ -177,6 +177,11 @@ const users = sqliteTable(
     id: integer('id').primaryKey({ autoIncrement: true }),
     identity: text('identity').unique().notNull(),
     password: text('password').notNull(),
+    mfaSecret: text('mfa_secret'),
+    mfaEnabled: integer('mfa_enabled', { mode: 'boolean' })
+      .notNull()
+      .default(false),
+    mfaEnabledAt: integer('mfa_enabled_at'),
     name: text('name').notNull(),
     avatarId: integer('avatar_id').references(() => files.id, {
       onDelete: 'set null'
@@ -200,6 +205,26 @@ const users = sqliteTable(
     index('users_name_idx').on(t.name),
     index('users_banned_idx').on(t.banned),
     index('users_last_login_idx').on(t.lastLoginAt)
+  ]
+);
+
+const userAppPasswords = sqliteTable(
+  'user_app_passwords',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    tokenHash: text('token_hash').notNull().unique(),
+    createdAt: integer('created_at').notNull(),
+    lastUsedAt: integer('last_used_at'),
+    revokedAt: integer('revoked_at')
+  },
+  (t) => [
+    index('user_app_passwords_user_idx').on(t.userId),
+    uniqueIndex('user_app_passwords_token_hash_idx').on(t.tokenHash),
+    index('user_app_passwords_revoked_idx').on(t.revokedAt)
   ]
 );
 
@@ -544,6 +569,7 @@ export {
   rolePermissions,
   roles,
   settings,
+  userAppPasswords,
   userRoles,
   users
 };

@@ -14,6 +14,7 @@ import {
 import { getUserInfoRoute } from './get-user-info';
 import { getUsersRoute } from './get-users';
 import { kickRoute } from './kick';
+import { mfaRouter } from './mfa';
 import { removeRoleRoute } from './remove-role';
 import { unbanRoute } from './unban';
 import { updatePasswordRoute } from './update-password';
@@ -32,6 +33,7 @@ export const usersRouter = t.router({
   ban: banRoute,
   unban: unbanRoute,
   delete: deleteUserRoute,
+  mfa: mfaRouter,
   onJoin: onUserJoinRoute,
   onLeave: onUserLeaveRoute,
   onUpdate: onUserUpdateRoute,

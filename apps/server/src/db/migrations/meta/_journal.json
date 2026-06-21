@@ -134,6 +134,20 @@
       "when": 1782059264931,
       "tag": "0018_add_move_members_permission",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1782061000000,
+      "tag": "0019_add_totp_mfa",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1782062000000,
+      "tag": "0020_add_user_app_passwords",
+      "breakpoints": true
     }
   ]
 }

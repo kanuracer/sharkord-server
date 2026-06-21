@@ -39,7 +39,13 @@ const initTest = async (userId: number = 1) => {
   return { caller, mockedToken, initialData };
 };
 
-const login = async (identity: string, password: string, invite?: string) =>
+const login = async (
+  identity: string,
+  password: string,
+  invite?: string,
+  totpCode?: string,
+  options: { appPassword?: string; rememberDevice?: boolean; deviceName?: string } = {}
+) =>
   fetch(`${testsBaseUrl}/login`, {
     method: 'POST',
     headers: {
@@ -48,7 +54,11 @@ const login = async (identity: string, password: string, invite?: string) =>
     body: JSON.stringify({
       identity,
       password,
-      invite
+      invite,
+      totpCode,
+      appPassword: options.appPassword,
+      rememberDevice: options.rememberDevice,
+      deviceName: options.deviceName
     })
   });
 
