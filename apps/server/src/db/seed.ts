@@ -143,6 +143,15 @@ const seedDatabase = async () => {
       storageQuotaOverrideEnabled: false,
       storageSpaceQuota: 0,
       createdAt: firstStart
+    },
+    {
+      name: 'Move_Members',
+      color: '#5865f2',
+      isPersistent: false,
+      isDefault: false,
+      storageQuotaOverrideEnabled: false,
+      storageSpaceQuota: 0,
+      createdAt: firstStart
     }
   ];
 
@@ -174,7 +183,8 @@ const seedDatabase = async () => {
     [roleId: number]: Permission[];
   } = {
     1: Object.values(Permission), // Owner (all permissions)
-    2: DEFAULT_ROLE_PERMISSIONS // Member (default permissions)
+    2: DEFAULT_ROLE_PERMISSIONS, // Member (default permissions)
+    3: [Permission.JOIN_VOICE_CHANNELS, Permission.MANAGE_USERS] // Move_Members
   };
 
   await db.insert(categories).values(initialCategories);

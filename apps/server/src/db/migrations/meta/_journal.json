@@ -120,6 +120,13 @@
       "when": 1778933632644,
       "tag": "0016_new_black_tom",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1782058672231,
+      "tag": "0017_add_move_members_role",
+      "breakpoints": true
     }
   ]
 }
