@@ -5,6 +5,11 @@ ENV RUNNING_IN_DOCKER=true
 
 USER root
 
+RUN set -eux; \
+    apt-get update; \
+    apt-get upgrade -y; \
+    rm -rf /var/lib/apt/lists/*
+
 COPY apps/server/build/out/sharkord-linux-x64 /tmp/sharkord-linux-x64
 COPY apps/server/build/out/sharkord-linux-arm64 /tmp/sharkord-linux-arm64
 
