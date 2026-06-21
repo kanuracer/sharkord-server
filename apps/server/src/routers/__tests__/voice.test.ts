@@ -1,8 +1,8 @@
-import { ChannelType } from '@sharkord/shared';
+import { ChannelType, Permission } from '@sharkord/shared';
 import { describe, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 import { db } from '../../db';
-import { channels, directMessages } from '../../db/schema';
+import { channels, directMessages, rolePermissions, roles, userRoles } from '../../db/schema';
 import { VoiceRuntime } from '../../runtimes/voice';
 import { initTest } from '../../__tests__/helpers';
 
@@ -93,6 +93,59 @@ describe('voice router', () => {
 
     await memberCaller.voice.updateState({ soundMuted: false });
     expect(VoiceRuntime.findById(destinationChannelId)?.getUserState(2).soundMuted).toBe(false);
+  });
+
+  test('should allow users with MOVE_MEMBERS to move another user', async () => {
+    const { caller: ownerCaller } = await initTest(1);
+    const sourceChannelId = await ownerCaller.channels.add({
+      type: ChannelType.VOICE,
+      name: 'Permission Source',
+      categoryId: 2
+    });
+    const destinationChannelId = await ownerCaller.channels.add({
+      type: ChannelType.VOICE,
+      name: 'Permission Dest',
+      categoryId: 2
+    });
+
+    const { caller: targetCaller } = await initTest(2);
+    await targetCaller.voice.join({
+      channelId: sourceChannelId,
+      state: { micMuted: false, soundMuted: true }
+    });
+
+    const [moveRole] = await db
+      .insert(roles)
+      .values({
+        name: 'Voice Mover',
+        color: '#5865f2',
+        isPersistent: false,
+        isDefault: false,
+        storageQuotaOverrideEnabled: false,
+        storageSpaceQuota: 0,
+        createdAt: Date.now()
+      })
+      .returning();
+
+    await db.insert(rolePermissions).values({
+      roleId: moveRole!.id,
+      permission: Permission.MOVE_MEMBERS,
+      createdAt: Date.now()
+    });
+    await db.insert(userRoles).values({
+      userId: 3,
+      roleId: moveRole!.id,
+      createdAt: Date.now()
+    });
+
+    const { caller: moverCaller } = await initTest(3);
+    await moverCaller.voice.moveUser({ userId: 2, destinationChannelId });
+
+    expect(VoiceRuntime.findById(sourceChannelId)?.getUser(2)).toBeUndefined();
+    expect(VoiceRuntime.findById(destinationChannelId)?.getUser(2)?.state).toMatchObject({
+      micMuted: false,
+      soundMuted: true
+    });
   });
 
   test('should forbid regular users from moving another user', async () => {

@@ -22,7 +22,7 @@ const moveUserRoute = protectedProcedure
     const isSelfMove = ctx.user.id === input.userId;
 
     if (!isSelfMove) {
-      await ctx.needsPermission(Permission.MANAGE_USERS);
+      await ctx.needsPermission(Permission.MOVE_MEMBERS);
     }
 
     const sourceRuntime = VoiceRuntime.findRuntimeByUserId(input.userId);

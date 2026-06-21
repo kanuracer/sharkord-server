@@ -127,6 +127,13 @@
       "when": 1782058672231,
       "tag": "0017_add_move_members_role",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1782059264931,
+      "tag": "0018_add_move_members_permission",
+      "breakpoints": true
     }
   ]
 }
