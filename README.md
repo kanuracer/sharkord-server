@@ -2,7 +2,7 @@
   <h1>Sharkord Server</h1>
   <p><strong>A lightweight, self-hosted real-time communication platform</strong></p>
 
-  [![Version](https://img.shields.io/github/v/release/Sharkord/sharkord)](https://github.com/Sharkord/sharkord/releases)
+  [![Version](https://img.shields.io/github/v/release/kanuracer/sharkord-server)](https://github.com/kanuracer/sharkord-server/releases)
   [![License](https://img.shields.io/github/license/Sharkord/sharkord)](LICENSE)
   [![Bun](https://img.shields.io/badge/Bun-v1.3.14-green.svg)](https://bun.sh)
   [![Mediasoup](https://img.shields.io/badge/Mediasoup-v3.19.19-green.svg)](https://mediasoup.org)
@@ -15,7 +15,7 @@ This repository is the `kanuracer/sharkord-server` fork of [Sharkord/sharkord](h
 Current fork additions:
 
 - Public GHCR image: `ghcr.io/kanuracer/sharkord-server:latest`
-- Stable fork tag: `ghcr.io/kanuracer/sharkord-server:0.0.22-kr.1`
+- Stable fork tag: `ghcr.io/kanuracer/sharkord-server:0.0.23`
 - Branch-current tag: `ghcr.io/kanuracer/sharkord-server:kr-main`
 - Docker entrypoint with persistent config directory support
 - Optional `PUID`/`PGID` remapping for host-mounted volumes
@@ -150,7 +150,7 @@ docker logs -f sharkord
 Recommended production pinning:
 
 ```yaml
-image: ghcr.io/kanuracer/sharkord-server:0.0.22-kr.1
+image: ghcr.io/kanuracer/sharkord-server:0.0.23
 ```
 
 Use `latest` only if you want automatic tracking of the newest published fork image.
