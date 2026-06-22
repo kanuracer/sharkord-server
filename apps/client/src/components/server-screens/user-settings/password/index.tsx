@@ -15,6 +15,7 @@ import {
   Group,
   Input
 } from '@sharkord/ui';
+import * as QRCode from 'qrcode';
 import { memo, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -38,6 +39,7 @@ const Password = memo(() => {
   });
   const [mfaEnabled, setMfaEnabled] = useState(false);
   const [mfaSetup, setMfaSetup] = useState<TMfaSetup | null>(null);
+  const [mfaQrCodeUrl, setMfaQrCodeUrl] = useState('');
   const [mfaLoading, setMfaLoading] = useState(true);
 
   const refreshMfaStatus = useCallback(async () => {
@@ -51,6 +53,27 @@ const Password = memo(() => {
       .catch(() => toast.error(t('mfaStatusError')))
       .finally(() => setMfaLoading(false));
   }, [refreshMfaStatus, t]);
+
+  useEffect(() => {
+    let active = true;
+
+    if (!mfaSetup?.otpauthUrl) {
+      setMfaQrCodeUrl('');
+      return () => { active = false; };
+    }
+
+    QRCode.toString(mfaSetup.otpauthUrl, {
+      type: 'svg',
+      errorCorrectionLevel: 'M',
+      margin: 2,
+      width: 192,
+      color: { dark: '#111827', light: '#ffffff' }
+    })
+      .then((svg) => { if (active) setMfaQrCodeUrl(`data:image/svg+xml;utf8,${encodeURIComponent(svg)}`); })
+      .catch(() => { if (active) setMfaQrCodeUrl(''); });
+
+    return () => { active = false; };
+  }, [mfaSetup?.otpauthUrl]);
 
   const updatePassword = useCallback(async () => {
     const trpc = getTRPCClient();
@@ -195,6 +218,18 @@ const Password = memo(() => {
               <Group label={t('mfaSecretLabel')}>
                 <Input value={mfaSetup.secret} readOnly />
               </Group>
+
+              {mfaQrCodeUrl && (
+                <div className="inline-flex rounded-lg border bg-white p-3">
+                  <img
+                    data-testid={TestId.MFA_SETUP_QR_CODE}
+                    src={mfaQrCodeUrl}
+                    alt={t('mfaQrCodeAlt')}
+                    width={192}
+                    height={192}
+                  />
+                </div>
+              )}
 
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" onClick={copyTotpUrl}>

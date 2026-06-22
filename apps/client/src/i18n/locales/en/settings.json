@@ -428,6 +428,7 @@
   "mfaSetupTitle": "Set up your authenticator app",
   "mfaSetupDesc": "Open the setup link in your authenticator app or copy the setup URI. Then enter the 6-digit code to enable 2FA.",
   "mfaSetupOpenAuthenticator": "Open setup link",
+  "mfaQrCodeAlt": "QR code for authenticator app setup",
   "mfaSecretLabel": "Secret key",
   "mfaCopySetupUri": "Copy setup URI",
   "mfaSetupUriCopied": "Setup URI copied",

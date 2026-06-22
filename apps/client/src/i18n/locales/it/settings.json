@@ -437,5 +437,6 @@
   "mfaDisableTitle": "Disable 2FA",
   "mfaDisableDesc": "Enter your current password and authenticator code. Disabling 2FA also revokes remembered devices.",
   "mfaDisableButton": "Disable 2FA",
-  "mfaDisabled": "Two-factor authentication disabled"
+  "mfaDisabled": "Two-factor authentication disabled",
+  "mfaQrCodeAlt": "Codice QR per configurare l'app di autenticazione"
 }

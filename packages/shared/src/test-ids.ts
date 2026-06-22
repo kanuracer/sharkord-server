@@ -7,6 +7,7 @@ export enum TestId {
   CONNECT_TOTP_DIALOG = 'connect-totp-dialog',
   CONNECT_TOTP_INPUT = 'connect-totp-input',
   MFA_SETUP_CARD = 'mfa-setup-card',
+  MFA_SETUP_QR_CODE = 'mfa-setup-qr-code',
   SERVER_VIEW = 'server-view',
   CHANNEL_ITEM = 'channel-item',
   MESSAGE_ITEM = 'message-item',
