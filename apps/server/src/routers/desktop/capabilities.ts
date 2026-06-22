@@ -9,6 +9,7 @@ const capabilitiesRoute = protectedProcedure.query(() => ({
     serverSelfUpdate: true,
     voiceUserMove: true,
     voiceUserDisconnect: true,
+    channelCrossCategoryMove: true,
     mfaAppPasswords: true
   }
 }));

@@ -231,6 +231,7 @@ describe('dms router', () => {
         serverSelfUpdate: true,
         voiceUserMove: true,
         voiceUserDisconnect: true,
+        channelCrossCategoryMove: true,
         mfaAppPasswords: true
       }
     });
