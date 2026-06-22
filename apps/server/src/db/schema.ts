@@ -111,9 +111,7 @@ const settings = sqliteTable(
     messageRetentionDays: integer('message_retention_days')
       .notNull()
       .default(0),
-    mediaRetentionDays: integer('media_retention_days')
-      .notNull()
-      .default(0)
+    mediaRetentionDays: integer('media_retention_days').notNull().default(0)
   },
   (t) => [
     index('settings_server_idx').on(t.serverId),
@@ -257,6 +255,25 @@ const userMfaRecoveryCodes = sqliteTable(
     index('user_mfa_recovery_codes_user_idx').on(t.userId),
     uniqueIndex('user_mfa_recovery_codes_hash_idx').on(t.codeHash),
     index('user_mfa_recovery_codes_used_idx').on(t.usedAt)
+  ]
+);
+
+const userOidcAccounts = sqliteTable(
+  'user_oidc_accounts',
+  {
+    provider: text('provider').notNull(),
+    subject: text('subject').notNull(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    email: text('email'),
+    createdAt: integer('created_at').notNull(),
+    lastLoginAt: integer('last_login_at').notNull()
+  },
+  (t) => [
+    primaryKey({ columns: [t.provider, t.subject] }),
+    index('user_oidc_accounts_user_idx').on(t.userId),
+    index('user_oidc_accounts_email_idx').on(t.email)
   ]
 );
 
@@ -633,8 +650,8 @@ export {
   directMessages,
   emojis,
   files,
-  invites,
   incomingWebhooks,
+  invites,
   logins,
   messageFiles,
   messageReactions,
@@ -645,6 +662,7 @@ export {
   settings,
   userAppPasswords,
   userMfaRecoveryCodes,
+  userOidcAccounts,
   userRoles,
   users
 };

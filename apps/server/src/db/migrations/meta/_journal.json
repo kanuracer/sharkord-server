@@ -169,6 +169,13 @@
       "when": 1782150000000,
       "tag": "0023_mfa_recovery_codes_role_mentions",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1782151000000,
+      "tag": "0024_user_oidc_accounts",
+      "breakpoints": true
     }
   ]
 }

@@ -27,17 +27,27 @@ const zConfig = z.object({
   }),
   oidc: z.object({
     enabled: z.coerce.boolean(),
-    providers: z.array(z.object({
-      id: z.string(),
-      name: z.string(),
-      issuer: z.string(),
-      clientId: z.string(),
-      clientSecret: z.string().optional().default(''),
-      authorizationEndpoint: z.string(),
-      tokenEndpoint: z.string(),
-      jwksUri: z.string(),
-      scopes: z.array(z.string()).default(['openid', 'profile', 'email'])
-    }))
+    providers: z.array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        issuer: z.string(),
+        clientId: z.string(),
+        clientSecret: z.string().optional().default(''),
+        authorizationEndpoint: z.string(),
+        tokenEndpoint: z.string(),
+        jwksUri: z.string(),
+        scopes: z.array(z.string()).default(['openid', 'profile', 'email']),
+        allowEmailAutoLink: z.coerce.boolean().optional().default(false),
+        allowRegistration: z.coerce.boolean().optional().default(false),
+        emailClaim: z.string().optional().default('email'),
+        nameClaim: z.string().optional().default('name'),
+        subjectClaim: z.string().optional().default('sub'),
+        jwks: z
+          .object({ keys: z.array(z.record(z.string(), z.unknown())) })
+          .optional()
+      })
+    )
   }),
   rateLimiters: z.object({
     sendAndEditMessage: z.object({
@@ -193,7 +203,8 @@ config = applyEnvOverrides(config, {
   'webRtc.port': 'SHARKORD_WEBRTC_PORT',
   'webRtc.announcedAddress': 'SHARKORD_WEBRTC_ANNOUNCED_ADDRESS',
   'webRtc.maxBitrate': 'SHARKORD_WEBRTC_MAX_BITRATE',
-  'oidc.enabled': 'SHARKORD_OIDC_ENABLED'
+  'oidc.enabled': 'SHARKORD_OIDC_ENABLED',
+  'oidc.providers': 'SHARKORD_OIDC_PROVIDERS'
 });
 
 config = Object.freeze(config);
