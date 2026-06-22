@@ -1,5 +1,5 @@
 import { ActivityLogType, Permission } from '@sharkord/shared';
-import { asc, eq } from 'drizzle-orm';
+import { asc, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../../db';
 import { publishChannel } from '../../db/publishers';
@@ -26,11 +26,19 @@ const reorderChannelsRoute = protectedProcedure
     const existingCategoryChannelIds = existingCategoryChannels.map(
       (channel) => channel.id
     );
-    const validIds = new Set(existingCategoryChannelIds);
+    const existingIds = new Set(existingCategoryChannelIds);
+    const requestedIds = [...new Set(input.channelIds)];
+    const movableChannels = requestedIds.length
+      ? await db
+        .select({ id: channels.id })
+        .from(channels)
+        .where(inArray(channels.id, requestedIds))
+      : [];
+    const movableIds = new Set(movableChannels.map((channel) => channel.id));
     const nextVisibleIds: number[] = [];
 
-    for (const channelId of input.channelIds) {
-      if (validIds.has(channelId) && !nextVisibleIds.includes(channelId)) {
+    for (const channelId of requestedIds) {
+      if ((existingIds.has(channelId) || movableIds.has(channelId)) && !nextVisibleIds.includes(channelId)) {
         nextVisibleIds.push(channelId);
       }
     }
@@ -49,6 +57,7 @@ const reorderChannelsRoute = protectedProcedure
         await tx
           .update(channels)
           .set({
+            categoryId: input.categoryId,
             position: newPosition,
             updatedAt: Date.now()
           })
