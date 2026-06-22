@@ -20,6 +20,12 @@ test('server update route never exposes fake 0.0.0 as latest version', () => {
   expect(getUpdateSource).toContain('normalizeReleaseVersion');
   expect(getUpdateSource).toContain("raw === '0.0.0'");
   expect(getUpdateSource).toContain('return null');
-  expect(getUpdateSource).toContain('api.github.com/repos/kanuracer/sharkord-server/releases/latest');
+  expect(getUpdateSource).toContain('api.github.com/repos/kanuracer/sharkord-server/releases');
   expect(getUpdateSource).not.toContain("return '0.0.0'");
+});
+
+test('server beta update fallback checks prereleases instead of stable latest only', () => {
+  expect(getUpdateSource).toContain("SERVER_VERSION.includes('-kr.')");
+  expect(getUpdateSource).toContain('getLatestBetaReleaseTagVersion');
+  expect(getUpdateSource).toContain('!release.prerelease');
 });
