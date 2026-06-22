@@ -1,6 +1,7 @@
 import { isEmojiOnlyMessage, type TJoinedMessage } from '@sharkord/shared';
 import parse, { type DOMNode } from 'html-react-parser';
 import type { ReactNode } from 'react';
+import { hoistParagraphBlockEmbeds } from './block-embeds';
 import { serializer } from './serializer';
 
 const MAX_CACHE_SIZE = 500;
@@ -32,7 +33,7 @@ const getParsedMessageHtml = (message: TJoinedMessage) => {
 
   trimCache(parsedMessageCache);
 
-  const parsed = parse(message.content ?? '', {
+  const parsed = parse(hoistParagraphBlockEmbeds(message.content ?? ''), {
     replace: (domNode: DOMNode) => serializer(domNode, message.id)
   });
 

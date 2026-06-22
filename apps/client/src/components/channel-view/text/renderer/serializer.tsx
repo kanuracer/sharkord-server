@@ -9,8 +9,14 @@ const serializer = (domNode: DOMNode, messageId: number) => {
   try {
     if (domNode instanceof Element && domNode.name === 'a') {
       const href = domNode.attribs.href;
+      const isBlockEmbed =
+        domNode.attribs['data-sharkord-block-embed'] === 'true';
 
       if (!URL.canParse(href)) {
+        return undefined;
+      }
+
+      if (!isBlockEmbed) {
         return undefined;
       }
 

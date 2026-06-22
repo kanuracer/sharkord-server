@@ -61,6 +61,8 @@ const generateAppPassword = () =>
 
 const hashAppPassword = async (token: string) => sha256(token);
 
+const GENERIC_LOGIN_ERROR = 'Invalid identity, password, or invite';
+
 const loginRateLimiter = createRateLimiter({
   maxRequests: config.rateLimiters.joinServer.maxRequests,
   windowMs: config.rateLimiters.joinServer.windowMs
@@ -176,7 +178,11 @@ const loginRouteHandler = async (
     const result = await isInviteValid(data.invite);
 
     if (!settings.allowNewUsers && result.error) {
-      throw new HttpValidationError('identity', result.error);
+      logger.info(
+        `${chalk.dim('[Auth]')} Failed login/registration attempt for identity "${data.identity}" due to invalid invite (${result.error}). (IP: ${connectionInfo?.ip || 'unknown'})`
+      );
+
+      throw new HttpValidationError('identity', GENERIC_LOGIN_ERROR);
     }
 
     if (result.invite) {
@@ -268,7 +274,7 @@ const loginRouteHandler = async (
       `${chalk.dim('[Auth]')} Failed login attempt for user "${existingUser.identity}" due to invalid password. (IP: ${connectionInfo?.ip || 'unknown'})`
     );
 
-    throw new HttpValidationError('password', 'Invalid password');
+    throw new HttpValidationError('identity', GENERIC_LOGIN_ERROR);
   }
 
   let newAppPassword: string | undefined;

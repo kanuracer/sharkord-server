@@ -12,8 +12,8 @@ import {
   messages,
   roles,
   settings,
-  userRoles,
   userAppPasswords,
+  userRoles,
   users
 } from '../../db/schema';
 import { generateTotpCode } from '../../utils/totp';
@@ -34,7 +34,7 @@ describe('/login', () => {
     expect(decoded).toHaveProperty('userId');
   });
 
-  test('should fail login with invalid password', async () => {
+  test('should fail login with a generic auth error for invalid password', async () => {
     const response = await login('testowner', 'wrongpassword');
 
     expect(response.status).toBe(400);
@@ -42,7 +42,21 @@ describe('/login', () => {
     const data: any = await response.json();
 
     expect(data).toHaveProperty('errors');
-    expect(data.errors).toHaveProperty('password', 'Invalid password');
+    expect(data.errors).toEqual({
+      identity: 'Invalid identity, password, or invite'
+    });
+  });
+
+  test('should not reveal whether identity or password was invalid', async () => {
+    await tdb.update(settings).set({ allowNewUsers: false });
+
+    const invalidPassword = await login('testowner', 'wrongpassword');
+    const unknownIdentity = await login('missingidentity', 'password123');
+
+    expect(invalidPassword.status).toBe(400);
+    expect(unknownIdentity.status).toBe(400);
+
+    expect(await invalidPassword.json()).toEqual(await unknownIdentity.json());
   });
 
   test('should require and verify TOTP when MFA is enabled', async () => {
@@ -122,9 +136,15 @@ describe('/login', () => {
     expect(stored?.tokenHash).not.toBe(rememberedBody.appPassword);
     expect(stored?.revokedAt).toBeNull();
 
-    const appPasswordLogin = await login('testowner', 'password123', undefined, undefined, {
-      appPassword: rememberedBody.appPassword
-    });
+    const appPasswordLogin = await login(
+      'testowner',
+      'password123',
+      undefined,
+      undefined,
+      {
+        appPassword: rememberedBody.appPassword
+      }
+    );
     expect(appPasswordLogin.status).toBe(200);
     expect(await appPasswordLogin.json()).toHaveProperty('token');
 
@@ -134,11 +154,19 @@ describe('/login', () => {
       .where(eq(userAppPasswords.id, rememberedBody.appPasswordId!))
       .run();
 
-    const revokedLogin = await login('testowner', 'password123', undefined, undefined, {
-      appPassword: rememberedBody.appPassword
-    });
+    const revokedLogin = await login(
+      'testowner',
+      'password123',
+      undefined,
+      undefined,
+      {
+        appPassword: rememberedBody.appPassword
+      }
+    );
     expect(revokedLogin.status).toBe(400);
-    const revokedBody = (await revokedLogin.json()) as { errors?: { totpCode?: string } };
+    const revokedBody = (await revokedLogin.json()) as {
+      errors?: { totpCode?: string };
+    };
     expect(revokedBody.errors?.totpCode).toBe('Two-factor code required');
 
     await tdb
@@ -231,7 +259,10 @@ describe('/login', () => {
     const data: any = await response.json();
 
     expect(data).toHaveProperty('errors');
-    expect(data.errors).toHaveProperty('identity', 'Invalid invite code');
+    expect(data.errors).toHaveProperty(
+      'identity',
+      'Invalid identity, password, or invite'
+    );
   });
 
   test('should allow registration with valid invite when allowNewUsers is false', async () => {
