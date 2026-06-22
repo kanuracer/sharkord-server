@@ -69,5 +69,16 @@
   "deleteCategoryMsg": "Вы уверены, что хотите удалить эту категорию? Это удалит все каналы в этой категории. Это действие невозможно отменить.",
   "categoryDeleted": "Категория удалена",
   "failedDeleteCategory": "Не удалось удалить категорию",
-  "userVolume": "Громкость пользователя"
+  "userVolume": "Громкость пользователя",
+  "hideDirectMessage": "Hide direct message",
+  "hideDirectMessageWith": "Hide direct message with {{name}}",
+  "hideDirectMessageTitle": "Hide direct message?",
+  "hideDirectMessageMsg": "Hide the direct message with {{name}} from your list? Existing messages stay on the server and the conversation reappears when they send a new message.",
+  "directMessageHidden": "Direct message hidden",
+  "failedHideDirectMessage": "Failed to hide direct message",
+  "disconnectUserFromVoice": "Disconnect from voice",
+  "disconnectUserFromVoiceTitle": "Disconnect user from voice?",
+  "disconnectUserFromVoiceMsg": "Disconnect {{name}} from the current voice channel?",
+  "userDisconnectedFromVoice": "User disconnected from voice",
+  "failedDisconnectUserFromVoice": "Failed to disconnect user from voice"
 }

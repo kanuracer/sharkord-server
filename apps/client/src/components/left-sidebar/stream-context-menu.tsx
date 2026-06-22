@@ -1,16 +1,23 @@
 import { UserAvatar } from '@/components/user-avatar';
 import { useStreamVolumeControl } from '@/components/voice-provider/hooks/use-stream-volume-control';
+import { requestConfirmation } from '@/features/dialogs/actions';
+import { useCan } from '@/features/server/hooks';
+import { getTRPCClient } from '@/lib/trpc';
+import { Permission } from '@sharkord/shared';
 import {
   Button,
   ContextMenu,
   ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
   ContextMenuTrigger,
   Slider
 } from '@sharkord/ui';
-import { Router, Volume2, VolumeX } from 'lucide-react';
+import { PhoneOff, Router, Volume2, VolumeX } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 
 type TUserContextMenuProps = {
   type: 'user';
@@ -32,6 +39,7 @@ type TStreamContextMenuProps = {
 
 const StreamContextMenu = (props: TStreamContextMenuProps) => {
   const { t } = useTranslation('sidebar');
+  const can = useCan();
 
   const { volume, isMuted, setVolume, toggleMute } = useStreamVolumeControl(
     props.type === 'user'
@@ -74,6 +82,31 @@ const StreamContextMenu = (props: TStreamContextMenuProps) => {
     );
   }, [props]);
 
+  const canDisconnectUser =
+    props.type === 'user' && can(Permission.MOVE_MEMBERS);
+
+  const disconnectUser = useCallback(async () => {
+    if (props.type !== 'user') return;
+
+    const confirmed = await requestConfirmation({
+      title: t('disconnectUserFromVoiceTitle'),
+      message: t('disconnectUserFromVoiceMsg', { name: props.name }),
+      confirmLabel: t('disconnectVoice'),
+      cancelLabel: t('cancel', { ns: 'common' })
+    });
+
+    if (!confirmed) return;
+
+    try {
+      await getTRPCClient().voice.disconnectUser.mutate({
+        userId: props.userId
+      });
+      toast.success(t('userDisconnectedFromVoice'));
+    } catch {
+      toast.error(t('failedDisconnectUserFromVoice'));
+    }
+  }, [props, t]);
+
   return (
     <ContextMenu>
       <ContextMenuTrigger>{props.children}</ContextMenuTrigger>
@@ -108,6 +141,16 @@ const StreamContextMenu = (props: TStreamContextMenuProps) => {
             </span>
             <span className="text-xs text-muted-foreground">{volume}%</span>
           </div>
+
+          {canDisconnectUser && (
+            <>
+              <ContextMenuSeparator className="my-3" />
+              <ContextMenuItem variant="destructive" onClick={disconnectUser}>
+                <PhoneOff className="mr-2 h-4 w-4" />
+                {t('disconnectUserFromVoice')}
+              </ContextMenuItem>
+            </>
+          )}
         </div>
       </ContextMenuContent>
     </ContextMenu>
