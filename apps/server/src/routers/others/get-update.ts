@@ -3,12 +3,36 @@ import { SERVER_VERSION } from '../../utils/env';
 import { protectedProcedure } from '../../utils/trpc';
 import { updater } from '../../utils/updater';
 
+const GITHUB_LATEST_RELEASE_URL =
+  'https://api.github.com/repos/kanuracer/sharkord-server/releases/latest';
+
+const normalizeReleaseVersion = (value: unknown): string | null => {
+  const raw = typeof value === 'string' ? value.trim() : '';
+  if (!raw || raw === '0.0.0') return null;
+  return raw.replace(/^v/i, '');
+};
+
+const getLatestReleaseTagVersion = async (): Promise<string | null> => {
+  try {
+    const response = await fetch(GITHUB_LATEST_RELEASE_URL, {
+      headers: { accept: 'application/vnd.github+json' }
+    });
+    if (!response.ok) return null;
+    const payload = (await response.json()) as { tag_name?: unknown };
+    return normalizeReleaseVersion(payload.tag_name);
+  } catch {
+    return null;
+  }
+};
+
 const getLatestVersion = async () => {
   try {
-    return await updater.getLatestVersion();
+    const latestVersion = normalizeReleaseVersion(await updater.getLatestVersion());
+    if (latestVersion) return latestVersion;
   } catch {
-    return '0.0.0';
+    // Older/manual GitHub releases may not include bun-sfe-autoupdater metadata.
   }
+  return getLatestReleaseTagVersion();
 };
 
 const hasUpdates = async () => {

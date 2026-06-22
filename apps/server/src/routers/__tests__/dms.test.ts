@@ -183,7 +183,8 @@ describe('dms router', () => {
         directMessageDelete: true,
         ownerToken: true,
         serverSelfUpdate: true,
-        voiceUserMove: true
+        voiceUserMove: true,
+        mfaAppPasswords: true
       }
     });
   });

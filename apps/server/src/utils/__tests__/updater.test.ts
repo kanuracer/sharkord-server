@@ -10,3 +10,16 @@ test('server update checks use kanuracer fork releases', () => {
   expect(updaterSource).not.toContain("repoOwner: 'Sharkord'");
   expect(updaterSource).not.toContain("repoName: 'sharkord'");
 });
+
+const getUpdateSource = readFileSync(
+  join(import.meta.dir, '../../routers/others/get-update.ts'),
+  'utf8'
+);
+
+test('server update route never exposes fake 0.0.0 as latest version', () => {
+  expect(getUpdateSource).toContain('normalizeReleaseVersion');
+  expect(getUpdateSource).toContain("raw === '0.0.0'");
+  expect(getUpdateSource).toContain('return null');
+  expect(getUpdateSource).toContain('api.github.com/repos/kanuracer/sharkord-server/releases/latest');
+  expect(getUpdateSource).not.toContain("return '0.0.0'");
+});
