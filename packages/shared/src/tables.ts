@@ -10,6 +10,7 @@ import {
   emojis,
   files,
   invites,
+  incomingWebhooks,
   logins,
   messageFiles,
   messageReactions,
@@ -39,6 +40,7 @@ export type TRolePermission = InferSelectModel<typeof rolePermissions>;
 export type TEmoji = InferSelectModel<typeof emojis>;
 export type TMessageReaction = InferSelectModel<typeof messageReactions>;
 export type TInvite = InferSelectModel<typeof invites>;
+export type TIncomingWebhook = InferSelectModel<typeof incomingWebhooks>;
 export type TActivityLog = InferSelectModel<typeof activityLog>;
 export type TUserRole = InferSelectModel<typeof userRoles>;
 export type TChannelRolePermission = InferSelectModel<
@@ -63,6 +65,7 @@ export type TIRolePermission = InferInsertModel<typeof rolePermissions>;
 export type TIEmoji = InferInsertModel<typeof emojis>;
 export type TIMessageReaction = InferInsertModel<typeof messageReactions>;
 export type TIInvite = InferInsertModel<typeof invites>;
+export type TIIncomingWebhook = InferInsertModel<typeof incomingWebhooks>;
 export type TIActivityLog = InferInsertModel<typeof activityLog>;
 export type TIUserRole = InferInsertModel<typeof userRoles>;
 export type TIChannelRolePermission = InferInsertModel<
@@ -89,6 +92,9 @@ export type TStorageSettings = Pick<
   | 'storageSignedUrlsTtlSeconds'
   | 'storageImageOptimizationEnabled'
   | 'storageImageOptimizationQuality'
+  | 'retentionCleanupEnabled'
+  | 'messageRetentionDays'
+  | 'mediaRetentionDays'
 >;
 
 // joined types

@@ -9,9 +9,11 @@ import { invitesRouter } from './invites';
 import { messagesRouter } from './messages';
 import { othersRouter } from './others';
 import { pluginsRouter } from './plugins';
+import { retentionRouter } from './retention';
 import { rolesRouter } from './roles';
 import { usersRouter } from './users';
 import { voiceRouter } from './voice';
+import { webhooksRouter } from './webhooks';
 
 const appRouter = t.router({
   others: othersRouter,
@@ -26,7 +28,9 @@ const appRouter = t.router({
   invites: invitesRouter,
   voice: voiceRouter,
   categories: categoriesRouter,
-  plugins: pluginsRouter
+  plugins: pluginsRouter,
+  webhooks: webhooksRouter,
+  retention: retentionRouter
 });
 
 type AppRouter = typeof appRouter;

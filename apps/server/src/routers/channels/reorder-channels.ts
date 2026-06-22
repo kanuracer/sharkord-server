@@ -1,5 +1,5 @@
 import { ActivityLogType, Permission } from '@sharkord/shared';
-import { asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../../db';
 import { publishChannel } from '../../db/publishers';
@@ -32,7 +32,7 @@ const reorderChannelsRoute = protectedProcedure
       ? await db
         .select({ id: channels.id })
         .from(channels)
-        .where(inArray(channels.id, requestedIds))
+        .where(and(inArray(channels.id, requestedIds), eq(channels.isDm, false)))
       : [];
     const movableIds = new Set(movableChannels.map((channel) => channel.id));
     const nextVisibleIds: number[] = [];

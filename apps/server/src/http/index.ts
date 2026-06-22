@@ -20,6 +20,7 @@ import { pluginsComponentsRouteHandler } from './plugins-components';
 import { publicRouteHandler } from './public';
 import { uploadFileRouteHandler } from './upload';
 import { HttpValidationError } from './utils';
+import { incomingWebhookRouteHandler } from './webhooks';
 
 type RouteContext = {
   info: ReturnType<typeof getWsInfo>;
@@ -54,7 +55,9 @@ const routeHandlers: Partial<
       '/upload': (req, res) => uploadFileRouteHandler(req, res),
       '/login': (req, res) => loginRouteHandler(req, res)
     },
-    prefix: {}
+    prefix: {
+      '/webhooks': (req, res) => incomingWebhookRouteHandler(req, res)
+    }
   }
 };
 

@@ -102,7 +102,18 @@ const settings = sqliteTable(
       'storage_image_optimization_quality'
     )
       .notNull()
-      .default(80)
+      .default(80),
+    retentionCleanupEnabled: integer('retention_cleanup_enabled', {
+      mode: 'boolean'
+    })
+      .notNull()
+      .default(false),
+    messageRetentionDays: integer('message_retention_days')
+      .notNull()
+      .default(0),
+    mediaRetentionDays: integer('media_retention_days')
+      .notNull()
+      .default(0)
   },
   (t) => [
     index('settings_server_idx').on(t.serverId),
@@ -559,6 +570,28 @@ const directMessageHiddenStates = sqliteTable(
   ]
 );
 
+const incomingWebhooks = sqliteTable(
+  'incoming_webhooks',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    name: text('name').notNull(),
+    channelId: integer('channel_id')
+      .notNull()
+      .references(() => channels.id, { onDelete: 'cascade' }),
+    tokenHash: text('token_hash').notNull().unique(),
+    createdBy: integer('created_by').references(() => users.id, {
+      onDelete: 'set null'
+    }),
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at'),
+    lastUsedAt: integer('last_used_at')
+  },
+  (t) => [
+    index('incoming_webhooks_channel_idx').on(t.channelId),
+    uniqueIndex('incoming_webhooks_token_hash_idx').on(t.tokenHash)
+  ]
+);
+
 const pluginData = sqliteTable('plugin_data', {
   pluginId: text('plugin_id').notNull().primaryKey(),
   enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),
@@ -580,6 +613,7 @@ export {
   emojis,
   files,
   invites,
+  incomingWebhooks,
   logins,
   messageFiles,
   messageReactions,

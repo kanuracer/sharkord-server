@@ -43,7 +43,10 @@ const updateSettingsRoute = protectedProcedure
         .int()
         .min(STORAGE_MIN_IMAGE_OPTIMIZATION_QUALITY)
         .max(STORAGE_MAX_IMAGE_OPTIMIZATION_QUALITY)
-        .optional()
+        .optional(),
+      retentionCleanupEnabled: z.boolean().optional(),
+      messageRetentionDays: z.number().int().min(0).max(3650).optional(),
+      mediaRetentionDays: z.number().int().min(0).max(3650).optional()
     })
   )
   .mutation(async ({ input, ctx }) => {
@@ -75,7 +78,10 @@ const updateSettingsRoute = protectedProcedure
       storageSignedUrlsEnabled: input.storageSignedUrlsEnabled,
       storageSignedUrlsTtlSeconds: input.storageSignedUrlsTtlSeconds,
       storageImageOptimizationEnabled: input.storageImageOptimizationEnabled,
-      storageImageOptimizationQuality: input.storageImageOptimizationQuality
+      storageImageOptimizationQuality: input.storageImageOptimizationQuality,
+      retentionCleanupEnabled: input.retentionCleanupEnabled,
+      messageRetentionDays: input.messageRetentionDays,
+      mediaRetentionDays: input.mediaRetentionDays
     });
 
     if (oldEnablePlugins !== input.enablePlugins) {

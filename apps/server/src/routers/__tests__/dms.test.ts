@@ -232,6 +232,8 @@ describe('dms router', () => {
         voiceUserMove: true,
         voiceUserDisconnect: true,
         channelCrossCategoryMove: true,
+        incomingWebhooks: true,
+        retentionPolicies: true,
         mfaAppPasswords: true
       }
     });

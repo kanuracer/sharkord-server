@@ -247,8 +247,9 @@ describe('channels router', () => {
 
     expect(channelA.position).toBe(1);
     expect(channel1.position).toBe(2);
-    expect(channelB.position).toBe(3);
-    expect(channel2.position).toBe(1);
+    expect(channel2.categoryId).toBe(1);
+    expect(channel2.position).toBe(3);
+    expect(channelB.position).toBe(4);
   });
 
   test('should reorder channels when some ids are missing from payload', async () => {
