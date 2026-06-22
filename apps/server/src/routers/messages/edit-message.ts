@@ -1,4 +1,5 @@
 import {
+  FileSaveType,
   Permission,
   getPlainTextFromHtml,
   isEmptyMessage
@@ -8,11 +9,14 @@ import { z } from 'zod';
 import { config } from '../../config';
 import { db } from '../../db';
 import { publishMessage } from '../../db/publishers';
-import { messages } from '../../db/schema';
+import { isDirectMessageChannel } from '../../db/queries/dms';
+import { getSettings } from '../../db/queries/server';
+import { messageFiles, messages } from '../../db/schema';
 import { assertChannelAccess } from '../../helpers/assert-channel-access';
 import { sanitizeMessageHtml } from '../../helpers/sanitize-html';
 import { eventBus } from '../../plugins/event-bus';
 import { enqueueProcessMetadata } from '../../queues/message-metadata';
+import { fileManager } from '../../utils/file-manager';
 import { invariant } from '../../utils/invariant';
 import { protectedProcedure, rateLimitedProcedure } from '../../utils/trpc';
 
@@ -24,7 +28,8 @@ const editMessageRoute = rateLimitedProcedure(protectedProcedure, {
   .input(
     z.object({
       messageId: z.number(),
-      content: z.string()
+      content: z.string(),
+      files: z.array(z.string()).optional()
     })
   )
   .mutation(async ({ input, ctx }) => {
@@ -74,6 +79,29 @@ const editMessageRoute = rateLimitedProcedure(protectedProcedure, {
         'Your message only contained unsupported or removed content, so there was nothing to send.'
     });
 
+    const limitedFiles = input.files
+      ? input.files.slice(0, Math.max(0, (await getSettings()).storageMaxFilesPerMessage))
+      : undefined;
+
+    if (limitedFiles && limitedFiles.length > 0) {
+      const [settings, isDmChannel] = await Promise.all([
+        getSettings(),
+        isDirectMessageChannel(message.channelId)
+      ]);
+
+      invariant(settings.storageUploadEnabled, {
+        code: 'FORBIDDEN',
+        message: 'File uploads are disabled on this server'
+      });
+
+      if (isDmChannel) {
+        invariant(settings.storageFileSharingInDirectMessages, {
+          code: 'FORBIDDEN',
+          message: 'File sharing in direct messages is disabled on this server'
+        });
+      }
+    }
+
     await db
       .update(messages)
       .set({
@@ -83,6 +111,24 @@ const editMessageRoute = rateLimitedProcedure(protectedProcedure, {
         editedBy: ctx.user.id
       })
       .where(eq(messages.id, input.messageId));
+
+    if (limitedFiles) {
+      await db.delete(messageFiles).where(eq(messageFiles.messageId, input.messageId));
+
+      for (const tempFileId of limitedFiles) {
+        const newFile = await fileManager.saveFile(
+          tempFileId,
+          ctx.userId,
+          FileSaveType.MESSAGE
+        );
+
+        await db.insert(messageFiles).values({
+          messageId: input.messageId,
+          fileId: newFile.id,
+          createdAt: Date.now()
+        });
+      }
+    }
 
     publishMessage(input.messageId, message.channelId, 'update');
     enqueueProcessMetadata(sanitizedContent, input.messageId);

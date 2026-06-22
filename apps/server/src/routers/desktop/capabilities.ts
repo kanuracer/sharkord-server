@@ -12,6 +12,8 @@ const capabilitiesRoute = protectedProcedure.query(() => ({
     channelCrossCategoryMove: true,
     incomingWebhooks: true,
     retentionPolicies: true,
+    messageEditAttachments: true,
+    roleMentions: true,
     mfaAppPasswords: true
   }
 }));

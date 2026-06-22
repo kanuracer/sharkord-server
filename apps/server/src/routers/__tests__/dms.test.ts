@@ -234,6 +234,8 @@ describe('dms router', () => {
         channelCrossCategoryMove: true,
         incomingWebhooks: true,
         retentionPolicies: true,
+        messageEditAttachments: true,
+        roleMentions: true,
         mfaAppPasswords: true
       }
     });

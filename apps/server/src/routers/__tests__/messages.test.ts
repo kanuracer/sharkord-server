@@ -7,6 +7,7 @@ import {
   files,
   messageFiles,
   rolePermissions,
+  roles,
   settings
 } from '../../db/schema';
 
@@ -111,6 +112,75 @@ describe('messages router', () => {
     expect(sentMessage!.content).toBe('Test message content');
     expect(sentMessage!.channelId).toBe(1);
     expect(sentMessage!.userId).toBe(1);
+  });
+
+  test('should edit message attachments by replacing file links', async () => {
+    const { caller, mockedToken } = await initTest(1);
+
+    const messageId = await caller.messages.send({
+      channelId: 1,
+      content: 'Message without attachment',
+      files: []
+    });
+
+    const uploadResponse = await uploadFile(
+      new File(['edited attachment body'], 'edited-attachment.txt', {
+        type: 'text/plain'
+      }),
+      mockedToken
+    );
+
+    expect(uploadResponse.status).toBe(200);
+    const tempFile = (await uploadResponse.json()) as { id: string };
+
+    await caller.messages.edit({
+      messageId,
+      content: 'Message with edited attachment',
+      files: [tempFile.id]
+    });
+
+    const result = await caller.messages.get({
+      channelId: 1,
+      cursor: null,
+      limit: 50
+    });
+
+    const editedMessage = result.messages.find((message) => message.id === messageId);
+    expect(editedMessage?.content).toBe('Message with edited attachment');
+    expect(editedMessage?.files.map((file) => file.originalName)).toContain(
+      'edited-attachment.txt'
+    );
+
+    const linkedFiles = await tdb
+      .select()
+      .from(messageFiles)
+      .where(eq(messageFiles.messageId, messageId));
+
+    expect(linkedFiles).toHaveLength(1);
+  });
+
+  test('should preserve role mention metadata when sending messages', async () => {
+    const { caller } = await initTest(1);
+    const role = await tdb.select().from(roles).limit(1).get();
+
+    expect(role).toBeDefined();
+
+    const messageId = await caller.messages.send({
+      channelId: 1,
+      content: `<p>Hello <span class="roleMention" data-role-id="${role!.id}">@${role!.name}</span></p>`,
+      files: []
+    });
+
+    const result = await caller.messages.get({
+      channelId: 1,
+      cursor: null,
+      limit: 50
+    });
+
+    const message = result.messages.find((item) => item.id === messageId);
+
+    expect(message?.content).toContain('roleMention');
+    expect(message?.content).toContain(`data-role-id="${role!.id}"`);
   });
 
   test('should get messages from channel', async () => {
