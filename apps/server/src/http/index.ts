@@ -15,6 +15,7 @@ import { infoRouteHandler } from './info';
 import { interfaceRouteHandler } from './interface';
 import { loginRouteHandler } from './login';
 import { manifestRouteHandler } from './manifest';
+import { oidcConfigRouteHandler, oidcLoginRouteHandler } from './oidc';
 import { pluginBundleRouteHandler } from './plugin-bundle';
 import { pluginsComponentsRouteHandler } from './plugins-components';
 import { publicRouteHandler } from './public';
@@ -41,7 +42,8 @@ const routeHandlers: Partial<
     exact: {
       '/healthz': (req, res) => healthRouteHandler(req, res),
       '/info': (req, res) => infoRouteHandler(req, res),
-      '/manifest.json': (req, res) => manifestRouteHandler(req, res)
+      '/manifest.json': (req, res) => manifestRouteHandler(req, res),
+      '/auth/oidc/config': (req, res, ctx) => oidcConfigRouteHandler(req, res, undefined)
     },
     prefix: {
       '/public': (req, res) => publicRouteHandler(req, res),
@@ -53,7 +55,8 @@ const routeHandlers: Partial<
   POST: {
     exact: {
       '/upload': (req, res) => uploadFileRouteHandler(req, res),
-      '/login': (req, res) => loginRouteHandler(req, res)
+      '/login': (req, res) => loginRouteHandler(req, res),
+      '/login/oidc': (req, res, ctx) => oidcLoginRouteHandler(req, res, undefined)
     },
     prefix: {
       '/webhooks': (req, res) => incomingWebhookRouteHandler(req, res)

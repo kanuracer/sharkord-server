@@ -25,6 +25,20 @@ const zConfig = z.object({
     announcedAddress: z.string(),
     maxBitrate: z.coerce.number().int().positive()
   }),
+  oidc: z.object({
+    enabled: z.coerce.boolean(),
+    providers: z.array(z.object({
+      id: z.string(),
+      name: z.string(),
+      issuer: z.string(),
+      clientId: z.string(),
+      clientSecret: z.string().optional().default(''),
+      authorizationEndpoint: z.string(),
+      tokenEndpoint: z.string(),
+      jwksUri: z.string(),
+      scopes: z.array(z.string()).default(['openid', 'profile', 'email'])
+    }))
+  }),
   rateLimiters: z.object({
     sendAndEditMessage: z.object({
       maxRequests: z.coerce.number().int().positive(),
@@ -85,6 +99,10 @@ const defaultConfig: TConfig = {
     port: 40000,
     announcedAddress: '',
     maxBitrate: 30_000_000 // 30 Mbps
+  },
+  oidc: {
+    enabled: false,
+    providers: []
   },
   rateLimiters: {
     sendAndEditMessage: {
@@ -174,7 +192,8 @@ config = applyEnvOverrides(config, {
   'server.autoupdate': 'SHARKORD_AUTOUPDATE',
   'webRtc.port': 'SHARKORD_WEBRTC_PORT',
   'webRtc.announcedAddress': 'SHARKORD_WEBRTC_ANNOUNCED_ADDRESS',
-  'webRtc.maxBitrate': 'SHARKORD_WEBRTC_MAX_BITRATE'
+  'webRtc.maxBitrate': 'SHARKORD_WEBRTC_MAX_BITRATE',
+  'oidc.enabled': 'SHARKORD_OIDC_ENABLED'
 });
 
 config = Object.freeze(config);

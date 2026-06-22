@@ -14,7 +14,9 @@ const capabilitiesRoute = protectedProcedure.query(() => ({
     retentionPolicies: true,
     messageEditAttachments: true,
     roleMentions: true,
-    mfaAppPasswords: true
+    mfaAppPasswords: true,
+    oidcLogin: true,
+    voiceDeviceHotSwap: true
   }
 }));
 
