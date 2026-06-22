@@ -15,16 +15,7 @@ import {
   useVoiceUsersByChannelId
 } from '@/features/server/hooks';
 import { useVoiceChannelExternalStreamsList } from '@/features/server/voice/hooks';
-import { getTRPCClient } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
-import {
-  DndContext,
-  type DragEndEvent,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors
-} from '@dnd-kit/core';
 import {
   SortableContext,
   useSortable,
@@ -39,15 +30,23 @@ import {
   getTrpcError
 } from '@sharkord/shared';
 import { Hash, Volume2 } from 'lucide-react';
-import { memo, useCallback, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
+import { memo, useMemo } from 'react';
 import { ChannelContextMenu } from '../context-menus/channel';
 import { UnreadCount } from '../unread-count';
 import { ExternalStream } from './external-stream';
 import { useSelectChannel } from './hooks';
 import { VoiceUser } from './voice-user';
 import { Waveform } from './waveform';
+
+const CHANNEL_SORTABLE_PREFIX = 'channel:';
+const channelSortableId = (channelId: number) => `${CHANNEL_SORTABLE_PREFIX}${channelId}`;
+const parseChannelSortableId = (id: unknown) => {
+  if (typeof id !== 'string' || !id.startsWith(CHANNEL_SORTABLE_PREFIX)) {
+    return undefined;
+  }
+  const parsed = Number(id.slice(CHANNEL_SORTABLE_PREFIX.length));
+  return Number.isInteger(parsed) ? parsed : undefined;
+};
 
 type TVoiceProps = Omit<TItemWrapperProps, 'children'> & {
   channel: TChannel;
@@ -214,7 +213,7 @@ const Channel = memo(({ channelId, isSelected, onClick }: TChannelProps) => {
     transform,
     transition,
     isDragging
-  } = useSortable({ id: channelId });
+  } = useSortable({ id: channelSortableId(channelId) });
 
   if (!channel) {
     return null;
@@ -269,83 +268,34 @@ type TChannelsProps = {
 };
 
 const Channels = memo(({ categoryId }: TChannelsProps) => {
-  const { t } = useTranslation('sidebar');
   const channels = useChannelsByCategoryId(categoryId);
   const selectedChannelId = useSelectedChannelId();
   const can = useCan();
   const channelIds = useMemo(
-    () => channels.map((channel) => channel.id),
+    () => channels.map((channel) => channelSortableId(channel.id)),
     [channels]
-  );
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8
-      }
-    })
   );
 
   const onChannelClick = useSelectChannel();
 
-  const handleDragEnd = useCallback(
-    async (event: DragEndEvent) => {
-      const { active, over } = event;
-
-      if (!over || active.id === over.id) {
-        return;
-      }
-
-      const oldIndex = channelIds.indexOf(active.id as number);
-      const newIndex = channelIds.indexOf(over.id as number);
-
-      if (oldIndex === -1 || newIndex === -1) {
-        return;
-      }
-
-      const reorderedIds = [...channelIds];
-      const [movedId] = reorderedIds.splice(oldIndex, 1);
-
-      reorderedIds.splice(newIndex, 0, movedId);
-
-      try {
-        const trpc = getTRPCClient();
-
-        await trpc.channels.reorder.mutate({
-          categoryId,
-          channelIds: reorderedIds
-        });
-      } catch (error) {
-        toast.error(getTrpcError(error, t('failedReorderChannels')));
-      }
-    },
-    [categoryId, channelIds, t]
-  );
-
   return (
-    <div className="space-y-0.5">
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
+    <div className="space-y-0.5" data-channel-category-id={categoryId}>
+      <SortableContext
+        items={channelIds}
+        strategy={verticalListSortingStrategy}
+        disabled={!can(Permission.MANAGE_CHANNELS)}
       >
-        <SortableContext
-          items={channelIds}
-          strategy={verticalListSortingStrategy}
-          disabled={!can(Permission.MANAGE_CHANNELS)}
-        >
-          {channels.map((channel) => (
-            <Channel
-              key={channel.id}
-              channelId={channel.id}
-              isSelected={selectedChannelId === channel.id}
-              onClick={() => onChannelClick(channel.id)}
-            />
-          ))}
-        </SortableContext>
-      </DndContext>
+        {channels.map((channel) => (
+          <Channel
+            key={channel.id}
+            channelId={channel.id}
+            isSelected={selectedChannelId === channel.id}
+            onClick={() => onChannelClick(channel.id)}
+          />
+        ))}
+      </SortableContext>
     </div>
   );
 });
 
-export { Channels };
+export { Channels, channelSortableId, parseChannelSortableId };

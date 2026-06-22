@@ -1,4 +1,5 @@
 import { openDialog } from '@/features/dialogs/actions';
+import { useChannels } from '@/features/server/channels/hooks';
 import {
   useCategories,
   useCategoryById
@@ -33,8 +34,22 @@ import { CategoryContextMenu } from '../context-menus/category';
 import { Dialog } from '../dialogs/dialogs';
 import { Protect } from '../protect';
 import { UnreadCount } from '../unread-count';
-import { Channels } from './channels';
+import {
+  Channels,
+  channelSortableId,
+  parseChannelSortableId
+} from './channels';
 import { useCategoryExpanded } from './hooks';
+
+const CATEGORY_SORTABLE_PREFIX = 'category:';
+const categorySortableId = (categoryId: number) => `${CATEGORY_SORTABLE_PREFIX}${categoryId}`;
+const parseCategorySortableId = (id: unknown) => {
+  if (typeof id !== 'string' || !id.startsWith(CATEGORY_SORTABLE_PREFIX)) {
+    return undefined;
+  }
+  const parsed = Number(id.slice(CATEGORY_SORTABLE_PREFIX.length));
+  return Number.isInteger(parsed) ? parsed : undefined;
+};
 
 type TCategoryProps = {
   categoryId: number;
@@ -56,7 +71,7 @@ const Category = memo(({ categoryId }: TCategoryProps) => {
     transform,
     transition,
     isDragging
-  } = useSortable({ id: categoryId });
+  } = useSortable({ id: categorySortableId(categoryId) });
 
   const onCreateChannelClick = useCallback(() => {
     openDialog(Dialog.CREATE_CHANNEL, { categoryId });
@@ -131,9 +146,14 @@ const Categories = memo(() => {
   const { t } = useTranslation('sidebar');
   const can = useCan();
   const categories = useCategories();
+  const channels = useChannels();
   const categoryIds = useMemo(
     () => categories.map((cat) => cat.id),
     [categories]
+  );
+  const categorySortableIds = useMemo(
+    () => categoryIds.map(categorySortableId),
+    [categoryIds]
   );
 
   const sensors = useSensors(
@@ -152,27 +172,70 @@ const Categories = memo(() => {
         return;
       }
 
-      const oldIndex = categoryIds.indexOf(active.id as number);
-      const newIndex = categoryIds.indexOf(over.id as number);
+      const activeCategoryId = parseCategorySortableId(active.id);
+      const overCategoryId = parseCategorySortableId(over.id);
 
-      if (oldIndex === -1 || newIndex === -1) {
+      if (activeCategoryId !== undefined && overCategoryId !== undefined) {
+        const oldIndex = categoryIds.indexOf(activeCategoryId);
+        const newIndex = categoryIds.indexOf(overCategoryId);
+
+        if (oldIndex === -1 || newIndex === -1) {
+          return;
+        }
+
+        const reorderedIds = [...categoryIds];
+        const [movedId] = reorderedIds.splice(oldIndex, 1);
+
+        reorderedIds.splice(newIndex, 0, movedId);
+
+        const trpc = getTRPCClient();
+
+        try {
+          await trpc.categories.reorder.mutate({ categoryIds: reorderedIds });
+        } catch (error) {
+          toast.error(getTrpcError(error, t('failedReorderCategories')));
+        }
         return;
       }
 
-      const reorderedIds = [...categoryIds];
-      const [movedId] = reorderedIds.splice(oldIndex, 1);
+      const activeChannelId = parseChannelSortableId(active.id);
+      const overChannelId = parseChannelSortableId(over.id);
+      const targetCategoryId = overChannelId !== undefined
+        ? channels.find((channel) => channel.id === overChannelId)?.categoryId
+        : overCategoryId;
 
-      reorderedIds.splice(newIndex, 0, movedId);
+      if (activeChannelId === undefined || targetCategoryId === undefined) {
+        return;
+      }
+
+      const sourceChannel = channels.find((channel) => channel.id === activeChannelId);
+      if (!sourceChannel) {
+        return;
+      }
+
+      const targetChannelIds = channels
+        .filter((channel) => channel.categoryId === targetCategoryId)
+        .sort((a, b) => a.position - b.position || a.id - b.id)
+        .map((channel) => channel.id)
+        .filter((channelId) => channelId !== activeChannelId);
+      const targetIndex = overChannelId !== undefined
+        ? targetChannelIds.indexOf(overChannelId)
+        : targetChannelIds.length;
+      const insertIndex = targetIndex < 0 ? targetChannelIds.length : targetIndex;
+      targetChannelIds.splice(insertIndex, 0, activeChannelId);
 
       const trpc = getTRPCClient();
 
       try {
-        await trpc.categories.reorder.mutate({ categoryIds: reorderedIds });
+        await trpc.channels.reorder.mutate({
+          categoryId: targetCategoryId,
+          channelIds: targetChannelIds
+        });
       } catch (error) {
-        toast.error(getTrpcError(error, t('failedReorderCategories')));
+        toast.error(getTrpcError(error, t('failedReorderChannels')));
       }
     },
-    [categoryIds, t]
+    [categoryIds, channels, t]
   );
 
   return (
@@ -183,7 +246,7 @@ const Categories = memo(() => {
         onDragEnd={handleDragEnd}
       >
         <SortableContext
-          items={categoryIds}
+          items={categorySortableIds}
           strategy={verticalListSortingStrategy}
           disabled={!can(Permission.MANAGE_CATEGORIES)}
         >
