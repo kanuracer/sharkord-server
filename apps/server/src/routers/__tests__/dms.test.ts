@@ -236,6 +236,8 @@ describe('dms router', () => {
         retentionPolicies: true,
         messageEditAttachments: true,
         roleMentions: true,
+        roleMentionFanout: true,
+        threadInbox: true,
         mfaAppPasswords: true,
         oidcLogin: true,
         voiceDeviceHotSwap: true

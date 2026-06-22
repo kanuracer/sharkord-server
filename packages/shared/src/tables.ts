@@ -9,8 +9,8 @@ import {
   directMessages,
   emojis,
   files,
-  invites,
   incomingWebhooks,
+  invites,
   logins,
   messageFiles,
   messageReactions,
@@ -44,7 +44,9 @@ export type TInvite = InferSelectModel<typeof invites>;
 export type TIncomingWebhook = InferSelectModel<typeof incomingWebhooks>;
 export type TActivityLog = InferSelectModel<typeof activityLog>;
 export type TUserRole = InferSelectModel<typeof userRoles>;
-export type TUserMfaRecoveryCode = InferSelectModel<typeof userMfaRecoveryCodes>;
+export type TUserMfaRecoveryCode = InferSelectModel<
+  typeof userMfaRecoveryCodes
+>;
 export type TChannelRolePermission = InferSelectModel<
   typeof channelRolePermissions
 >;
@@ -136,6 +138,22 @@ export type TJoinedMessage = TMessage & {
   reactions: TJoinedMessageReaction[];
   replyCount?: number;
   replyTo?: TMessageReplyPreview | null;
+  mentionedRoleIds?: number[];
+  mentionedUserIds?: number[];
+};
+
+export type TThreadInboxItem = {
+  channelId: number;
+  parentMessageId: number;
+  parentMessage: TJoinedMessage;
+  latestReply: TJoinedMessage;
+  replyCount: number;
+  unreadReplyCount: number;
+};
+
+export type TThreadInbox = {
+  items: TThreadInboxItem[];
+  totalUnreadReplies: number;
 };
 
 export type TJoinedEmoji = TEmoji & {

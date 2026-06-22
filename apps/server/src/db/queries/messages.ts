@@ -14,9 +14,104 @@ import {
   files,
   messageFiles,
   messageReactions,
-  messages
+  messages,
+  roles,
+  userRoles
 } from '../schema';
 import { getSettings } from './server';
+
+const decodeBasicEntities = (value: string) =>
+  value
+    .replace(/&#(\d+);/g, (_match, code) => String.fromCodePoint(Number(code)))
+    .replace(/&#x([0-9a-f]+);/gi, (_match, code) =>
+      String.fromCodePoint(parseInt(code, 16))
+    )
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&nbsp;/g, ' ');
+
+const textFromMessageHtml = (html = '') =>
+  decodeBasicEntities(html.replace(/<[^>]+>/g, ' '))
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const extractRoleIdsFromAttributes = (html: string) => {
+  const ids = new Set<number>();
+  for (const match of html.matchAll(
+    /data-role-id\s*=\s*(?:"(\d+)"|'(\d+)'|(\d+))/gi
+  )) {
+    const id = Number(match[1] ?? match[2] ?? match[3]);
+    if (Number.isInteger(id) && id > 0) ids.add(id);
+  }
+  return ids;
+};
+
+const getRoleMentionTargetsByMessage = async (rows: TMessage[]) => {
+  if (rows.length === 0)
+    return new Map<number, { roleIds: number[]; userIds: number[] }>();
+
+  const mentionableRoles = await db
+    .select({ id: roles.id, name: roles.name })
+    .from(roles)
+    .where(eq(roles.mentionable, true));
+
+  if (mentionableRoles.length === 0)
+    return new Map<number, { roleIds: number[]; userIds: number[] }>();
+
+  const roleIdsByMessage = new Map<number, number[]>();
+  const allRoleIds = new Set<number>();
+
+  for (const message of rows) {
+    const html = String(message.content ?? '');
+    const body = textFromMessageHtml(html).toLowerCase();
+    const attrRoleIds = extractRoleIdsFromAttributes(html);
+    const matchedRoleIds = mentionableRoles
+      .filter(
+        (role) =>
+          attrRoleIds.has(role.id) ||
+          body.includes(`@&${role.name.toLowerCase()}`)
+      )
+      .map((role) => role.id);
+
+    if (matchedRoleIds.length > 0) {
+      roleIdsByMessage.set(message.id, matchedRoleIds);
+      matchedRoleIds.forEach((roleId) => allRoleIds.add(roleId));
+    }
+  }
+
+  if (allRoleIds.size === 0)
+    return new Map<number, { roleIds: number[]; userIds: number[] }>();
+
+  const membershipRows = await db
+    .select({ roleId: userRoles.roleId, userId: userRoles.userId })
+    .from(userRoles)
+    .where(inArray(userRoles.roleId, [...allRoleIds]));
+
+  const userIdsByRole = membershipRows.reduce<Map<number, number[]>>(
+    (acc, row) => {
+      const next = acc.get(row.roleId) ?? [];
+      next.push(row.userId);
+      acc.set(row.roleId, next);
+      return acc;
+    },
+    new Map()
+  );
+
+  const result = new Map<number, { roleIds: number[]; userIds: number[] }>();
+  for (const message of rows) {
+    const roleIds = roleIdsByMessage.get(message.id) ?? [];
+    if (roleIds.length === 0) continue;
+    const userIds = [
+      ...new Set(roleIds.flatMap((roleId) => userIdsByRole.get(roleId) ?? []))
+    ].filter((userId) => userId !== message.userId);
+    result.set(message.id, { roleIds, userIds });
+  }
+
+  return result;
+};
 
 const getReplyPreviewByMessageId = async (rows: TMessage[]) => {
   const replyToMessageIds = [
@@ -139,15 +234,23 @@ const joinMessagesWithRelations = async (
     return acc;
   }, {});
 
-  return rows.map((msg) => ({
-    ...msg,
-    files: filesByMessage[msg.id] ?? [],
-    reactions: reactionsByMessage[msg.id] ?? [],
-    replyTo:
-      msg.replyToMessageId !== null
-        ? (replyToMap[msg.replyToMessageId] ?? null)
-        : null
-  }));
+  const mentionTargetsByMessage = await getRoleMentionTargetsByMessage(rows);
+
+  return rows.map((msg) => {
+    const mentionTargets = mentionTargetsByMessage.get(msg.id);
+
+    return {
+      ...msg,
+      files: filesByMessage[msg.id] ?? [],
+      reactions: reactionsByMessage[msg.id] ?? [],
+      replyTo:
+        msg.replyToMessageId !== null
+          ? (replyToMap[msg.replyToMessageId] ?? null)
+          : null,
+      mentionedRoleIds: mentionTargets?.roleIds ?? [],
+      mentionedUserIds: mentionTargets?.userIds ?? []
+    };
+  });
 };
 
 const getMessage = async (
