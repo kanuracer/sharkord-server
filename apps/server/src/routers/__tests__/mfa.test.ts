@@ -19,7 +19,7 @@ describe('users MFA router', () => {
   test('starts setup, enables MFA with a valid code, and reports status', async () => {
     const { caller } = await initTest(1);
 
-    expect(await caller.users.mfa.status()).toEqual({ enabled: false });
+    expect(await caller.users.mfa.status()).toEqual({ enabled: false, recoveryCodesRemaining: 0 });
 
     const setup = await caller.users.mfa.start();
 
@@ -35,8 +35,9 @@ describe('users MFA router', () => {
       code: generateTotpCode(setup.secret)
     });
 
-    expect(enabled).toEqual({ enabled: true });
-    expect(await caller.users.mfa.status()).toEqual({ enabled: true });
+    expect(enabled.enabled).toBe(true);
+    expect(enabled.recoveryCodes).toHaveLength(10);
+    expect(await caller.users.mfa.status()).toEqual({ enabled: true, recoveryCodesRemaining: 10 });
 
     const user = await tdb
       .select({

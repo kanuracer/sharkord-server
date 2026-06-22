@@ -28,6 +28,7 @@ describe('roles router', () => {
         name: 'Updated Role',
         color: '#ff0000',
         permissions: [Permission.SEND_MESSAGES],
+        mentionable: true,
         storageQuotaOverrideEnabled: false,
         storageSpaceQuota: 0
       })
@@ -83,6 +84,7 @@ describe('roles router', () => {
     expect(newRole!.isPersistent).toBe(false);
     expect(newRole!.storageQuotaOverrideEnabled).toBe(false);
     expect(newRole!.storageSpaceQuota).toBe(0);
+    expect(newRole!.mentionable).toBe(false);
   });
 
   test('should update existing role', async () => {
@@ -95,6 +97,7 @@ describe('roles router', () => {
       name: 'Updated Role Name',
       color: '#ff5500',
       permissions: [Permission.SEND_MESSAGES, Permission.UPLOAD_FILES],
+      mentionable: true,
       storageQuotaOverrideEnabled: false,
       storageSpaceQuota: 0
     });
@@ -110,6 +113,7 @@ describe('roles router', () => {
     expect(updatedRole!.permissions.length).toBe(2);
     expect(updatedRole!.storageQuotaOverrideEnabled).toBe(false);
     expect(updatedRole!.storageSpaceQuota).toBe(0);
+    expect(updatedRole!.mentionable).toBe(true);
   });
 
   test('should update role storage override settings', async () => {
@@ -122,6 +126,7 @@ describe('roles router', () => {
       name: 'Storage Role',
       color: '#336699',
       permissions: [Permission.UPLOAD_FILES],
+      mentionable: true,
       storageQuotaOverrideEnabled: true,
       storageSpaceQuota: 1024 * 1024 * 1024
     });
@@ -159,6 +164,7 @@ describe('roles router', () => {
       name: 'Owner',
       color: '#ff0000',
       permissions: [Permission.SEND_MESSAGES],
+      mentionable: true,
       storageQuotaOverrideEnabled: false,
       storageSpaceQuota: 0
     });

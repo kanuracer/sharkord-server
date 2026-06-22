@@ -23,6 +23,7 @@ const updateRoleRoute = protectedProcedure
         .string()
         .regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, 'Invalid hex color'),
       permissions: z.enum(Permission).array(),
+      mentionable: z.boolean().optional(),
       storageQuotaOverrideEnabled: z.boolean(),
       storageSpaceQuota: z
         .number()
@@ -38,6 +39,7 @@ const updateRoleRoute = protectedProcedure
       .set({
         name: input.name,
         color: input.color,
+        mentionable: !!input.mentionable,
         storageQuotaOverrideEnabled: input.storageQuotaOverrideEnabled,
         storageSpaceQuota: input.storageSpaceQuota
       })

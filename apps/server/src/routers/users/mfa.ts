@@ -1,7 +1,9 @@
+import { sha256 } from '@sharkord/shared';
+import { randomBytes } from 'crypto';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../../db';
-import { userAppPasswords, users } from '../../db/schema';
+import { userAppPasswords, userMfaRecoveryCodes, users } from '../../db/schema';
 import { invariant } from '../../utils/invariant';
 import {
   createTotpUri,
@@ -11,14 +13,60 @@ import {
 import { protectedProcedure, t } from '../../utils/trpc';
 import { closeSocketsForAppPassword } from '../../utils/ws-client-registry';
 
+const RECOVERY_CODE_COUNT = 10;
+const generateRecoveryCode = () => `shk_rec_${randomBytes(12).toString('base64url')}`;
+const hashRecoveryCode = (code: string) => sha256(code.trim());
+
+const createRecoveryCodes = async (tx: typeof db, userId: number) => {
+  const now = Date.now();
+  const recoveryCodes = Array.from({ length: RECOVERY_CODE_COUNT }, generateRecoveryCode);
+  await tx.delete(userMfaRecoveryCodes).where(eq(userMfaRecoveryCodes.userId, userId)).run();
+  await tx.insert(userMfaRecoveryCodes).values(
+    await Promise.all(recoveryCodes.map(async (code) => ({
+      userId,
+      codeHash: await hashRecoveryCode(code),
+      createdAt: now,
+      usedAt: null
+    })))
+  ).run();
+  return recoveryCodes;
+};
+
+const verifyCurrentCredentials = async (ctx: { userId: number; throwValidationError: (field: string, message: string) => never }, input: { password: string; code?: string }) => {
+  const user = await db
+    .select({ password: users.password, mfaSecret: users.mfaSecret, mfaEnabled: users.mfaEnabled })
+    .from(users)
+    .where(eq(users.id, ctx.userId))
+    .get();
+
+  invariant(user, { code: 'NOT_FOUND', message: 'User not found' });
+
+  if (!(await Bun.password.verify(input.password, user.password))) {
+    ctx.throwValidationError('password', 'Current password is incorrect');
+  }
+
+  if (user.mfaEnabled && (!input.code || !user.mfaSecret || !verifyTotpCode(user.mfaSecret, input.code))) {
+    ctx.throwValidationError('code', 'Invalid two-factor code');
+  }
+};
+
 const statusRoute = protectedProcedure.query(async ({ ctx }) => {
   const user = await db
     .select({ mfaEnabled: users.mfaEnabled })
     .from(users)
     .where(eq(users.id, ctx.userId))
     .get();
+  const recoveryCodes = await db
+    .select({ id: userMfaRecoveryCodes.id })
+    .from(userMfaRecoveryCodes)
+    .where(
+      and(
+        eq(userMfaRecoveryCodes.userId, ctx.userId),
+        isNull(userMfaRecoveryCodes.usedAt)
+      )
+    );
 
-  return { enabled: !!user?.mfaEnabled };
+  return { enabled: !!user?.mfaEnabled, recoveryCodesRemaining: recoveryCodes.length };
 });
 
 const startRoute = protectedProcedure.mutation(async ({ ctx }) => {
@@ -35,6 +83,11 @@ const startRoute = protectedProcedure.mutation(async ({ ctx }) => {
           isNull(userAppPasswords.revokedAt)
         )
       )
+      .run();
+
+    await tx
+      .delete(userMfaRecoveryCodes)
+      .where(eq(userMfaRecoveryCodes.userId, ctx.userId))
       .run();
 
     await tx
@@ -68,13 +121,16 @@ const enableRoute = protectedProcedure
       ctx.throwValidationError('code', 'Invalid two-factor code');
     }
 
-    await db
-      .update(users)
-      .set({ mfaEnabled: true, mfaEnabledAt: Date.now() })
-      .where(eq(users.id, ctx.userId))
-      .run();
+    const recoveryCodes = await db.transaction(async (tx) => {
+      await tx
+        .update(users)
+        .set({ mfaEnabled: true, mfaEnabledAt: Date.now() })
+        .where(eq(users.id, ctx.userId))
+        .run();
+      return createRecoveryCodes(tx as typeof db, ctx.userId);
+    });
 
-    return { enabled: true };
+    return { enabled: true, recoveryCodes };
   });
 
 const disableRoute = protectedProcedure
@@ -127,6 +183,11 @@ const disableRoute = protectedProcedure
         .run();
 
       await tx
+        .delete(userMfaRecoveryCodes)
+        .where(eq(userMfaRecoveryCodes.userId, ctx.userId))
+        .run();
+
+      await tx
         .update(users)
         .set({ mfaSecret: null, mfaEnabled: false, mfaEnabledAt: null })
         .where(eq(users.id, ctx.userId))
@@ -149,6 +210,18 @@ const appPasswordsRoute = protectedProcedure.query(async ({ ctx }) => {
     .where(eq(userAppPasswords.userId, ctx.userId))
     .orderBy(desc(userAppPasswords.createdAt));
 });
+
+const regenerateRecoveryCodesRoute = protectedProcedure
+  .input(
+    z.object({
+      password: z.string().min(4).max(128),
+      code: z.string().trim().optional()
+    })
+  )
+  .mutation(async ({ ctx, input }) => {
+    await verifyCurrentCredentials(ctx, input);
+    return db.transaction((tx) => createRecoveryCodes(tx as typeof db, ctx.userId));
+  });
 
 const revokeAppPasswordRoute = protectedProcedure
   .input(z.object({ id: z.number().int().positive() }))
@@ -181,5 +254,6 @@ export const mfaRouter = t.router({
   enable: enableRoute,
   disable: disableRoute,
   appPasswords: appPasswordsRoute,
+  regenerateRecoveryCodes: regenerateRecoveryCodesRoute,
   revokeAppPassword: revokeAppPasswordRoute
 });

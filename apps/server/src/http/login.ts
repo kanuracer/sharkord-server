@@ -22,6 +22,7 @@ import {
   invites,
   messages,
   userAppPasswords,
+  userMfaRecoveryCodes,
   userRoles,
   users
 } from '../db/schema';
@@ -52,6 +53,7 @@ const zBody = z.object({
   invite: z.string().optional(),
   totpCode: z.string().trim().optional(),
   appPassword: z.string().trim().max(128).optional(),
+  recoveryCode: z.string().trim().max(128).optional(),
   rememberDevice: z.boolean().optional(),
   deviceName: z.string().trim().max(80).optional()
 });
@@ -60,6 +62,7 @@ const generateAppPassword = () =>
   `shk_app_${randomBytes(32).toString('base64url')}`;
 
 const hashAppPassword = async (token: string) => sha256(token);
+const hashRecoveryCode = async (code: string) => sha256(code.trim());
 
 const GENERIC_LOGIN_ERROR = 'Invalid identity, password, or invite';
 
@@ -308,6 +311,32 @@ const loginRouteHandler = async (
           .where(eq(userAppPasswords.id, matched.id))
           .run();
       }
+    }
+
+    if (!mfaSatisfiedByAppPassword && data.recoveryCode) {
+      const recoveryCodeHash = await hashRecoveryCode(data.recoveryCode);
+      const matchedRecoveryCode = await db
+        .select()
+        .from(userMfaRecoveryCodes)
+        .where(
+          and(
+            eq(userMfaRecoveryCodes.userId, existingUser.id),
+            eq(userMfaRecoveryCodes.codeHash, recoveryCodeHash),
+            isNull(userMfaRecoveryCodes.usedAt)
+          )
+        )
+        .get();
+
+      if (!matchedRecoveryCode) {
+        throw new HttpValidationError('totpCode', 'Invalid recovery code');
+      }
+
+      await db
+        .update(userMfaRecoveryCodes)
+        .set({ usedAt: Date.now() })
+        .where(eq(userMfaRecoveryCodes.id, matchedRecoveryCode.id))
+        .run();
+      mfaSatisfiedByAppPassword = true;
     }
 
     if (!mfaSatisfiedByAppPassword) {

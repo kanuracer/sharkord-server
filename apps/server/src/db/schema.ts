@@ -135,6 +135,9 @@ const roles = sqliteTable(
       .notNull()
       .default(false),
     storageSpaceQuota: integer('storage_space_quota').notNull().default(0),
+    mentionable: integer('mentionable', { mode: 'boolean' })
+      .notNull()
+      .default(false),
     createdAt: integer('created_at').notNull(),
     updatedAt: integer('updated_at')
   },
@@ -236,6 +239,24 @@ const userAppPasswords = sqliteTable(
     index('user_app_passwords_user_idx').on(t.userId),
     uniqueIndex('user_app_passwords_token_hash_idx').on(t.tokenHash),
     index('user_app_passwords_revoked_idx').on(t.revokedAt)
+  ]
+);
+
+const userMfaRecoveryCodes = sqliteTable(
+  'user_mfa_recovery_codes',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    codeHash: text('code_hash').notNull().unique(),
+    createdAt: integer('created_at').notNull(),
+    usedAt: integer('used_at')
+  },
+  (t) => [
+    index('user_mfa_recovery_codes_user_idx').on(t.userId),
+    uniqueIndex('user_mfa_recovery_codes_hash_idx').on(t.codeHash),
+    index('user_mfa_recovery_codes_used_idx').on(t.usedAt)
   ]
 );
 
@@ -623,6 +644,7 @@ export {
   roles,
   settings,
   userAppPasswords,
+  userMfaRecoveryCodes,
   userRoles,
   users
 };

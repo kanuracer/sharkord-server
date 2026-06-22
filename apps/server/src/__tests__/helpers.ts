@@ -44,7 +44,7 @@ const login = async (
   password: string,
   invite?: string,
   totpCode?: string,
-  options: { appPassword?: string; rememberDevice?: boolean; deviceName?: string } = {}
+  options: { appPassword?: string; rememberDevice?: boolean; deviceName?: string; recoveryCode?: string } = {}
 ) =>
   fetch(`${testsBaseUrl}/login`, {
     method: 'POST',
@@ -57,6 +57,7 @@ const login = async (
       invite,
       totpCode,
       appPassword: options.appPassword,
+      recoveryCode: options.recoveryCode,
       rememberDevice: options.rememberDevice,
       deviceName: options.deviceName
     })

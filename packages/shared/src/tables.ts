@@ -18,6 +18,7 @@ import {
   rolePermissions,
   roles,
   settings,
+  userMfaRecoveryCodes,
   userRoles,
   users
 } from '../../../apps/server/src/db/schema';
@@ -43,6 +44,7 @@ export type TInvite = InferSelectModel<typeof invites>;
 export type TIncomingWebhook = InferSelectModel<typeof incomingWebhooks>;
 export type TActivityLog = InferSelectModel<typeof activityLog>;
 export type TUserRole = InferSelectModel<typeof userRoles>;
+export type TUserMfaRecoveryCode = InferSelectModel<typeof userMfaRecoveryCodes>;
 export type TChannelRolePermission = InferSelectModel<
   typeof channelRolePermissions
 >;

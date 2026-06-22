@@ -13,6 +13,7 @@ import {
   roles,
   settings,
   userAppPasswords,
+  userMfaRecoveryCodes,
   userRoles,
   users
 } from '../../db/schema';
@@ -174,6 +175,38 @@ describe('/login', () => {
       .set({ mfaSecret: null, mfaEnabled: false, mfaEnabledAt: null })
       .where(eq(users.identity, 'testowner'))
       .run();
+  });
+
+  test('should issue one-time recovery codes when MFA is enabled and consume them on login', async () => {
+    const { caller } = await import('../../__tests__/helpers').then((m) => m.initTest());
+    const setup = await caller.users.mfa.start();
+    const enabled = await caller.users.mfa.enable({ code: generateTotpCode(setup.secret) }) as { recoveryCodes?: string[] };
+
+    expect(enabled.recoveryCodes).toHaveLength(10);
+    expect(enabled.recoveryCodes?.every((code) => /^shk_rec_[A-Za-z0-9_-]{10,}$/.test(code))).toBe(true);
+
+    const storedCodes = await tdb.select().from(userMfaRecoveryCodes);
+    expect(storedCodes).toHaveLength(10);
+    const firstStoredCode = storedCodes[0];
+    expect(firstStoredCode).toBeDefined();
+    expect(firstStoredCode!.codeHash).not.toBe(enabled.recoveryCodes![0]);
+    expect(firstStoredCode!.usedAt).toBeNull();
+
+    const firstLogin = await login('testowner', 'password123', undefined, undefined, {
+      recoveryCode: enabled.recoveryCodes![0]
+    });
+    expect(firstLogin.status).toBe(200);
+    expect(await firstLogin.json()).toHaveProperty('token');
+
+    const used = await tdb.select().from(userMfaRecoveryCodes).where(eq(userMfaRecoveryCodes.codeHash, firstStoredCode!.codeHash)).get();
+    expect(used?.usedAt).toBeGreaterThan(0);
+
+    const replay = await login('testowner', 'password123', undefined, undefined, {
+      recoveryCode: enabled.recoveryCodes![0]
+    });
+    expect(replay.status).toBe(400);
+    const replayBody = (await replay.json()) as { errors?: { totpCode?: string } };
+    expect(replayBody.errors?.totpCode).toBe('Invalid recovery code');
   });
 
   test('should auto-register new user when allowNewUsers is true', async () => {
