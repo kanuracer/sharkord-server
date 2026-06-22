@@ -1,5 +1,6 @@
 export type TTokenPayload = {
   userId: number;
+  appPasswordId?: number;
   exp: number;
 };
 

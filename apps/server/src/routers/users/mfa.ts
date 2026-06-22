@@ -9,6 +9,7 @@ import {
   verifyTotpCode
 } from '../../utils/totp';
 import { protectedProcedure, t } from '../../utils/trpc';
+import { closeSocketsForAppPassword } from '../../utils/ws-client-registry';
 
 const statusRoute = protectedProcedure.query(async ({ ctx }) => {
   const user = await db
@@ -28,7 +29,12 @@ const startRoute = protectedProcedure.mutation(async ({ ctx }) => {
     await tx
       .update(userAppPasswords)
       .set({ revokedAt: now })
-      .where(and(eq(userAppPasswords.userId, ctx.userId), isNull(userAppPasswords.revokedAt)))
+      .where(
+        and(
+          eq(userAppPasswords.userId, ctx.userId),
+          isNull(userAppPasswords.revokedAt)
+        )
+      )
       .run();
 
     await tx
@@ -112,7 +118,12 @@ const disableRoute = protectedProcedure
       await tx
         .update(userAppPasswords)
         .set({ revokedAt: now })
-        .where(and(eq(userAppPasswords.userId, ctx.userId), isNull(userAppPasswords.revokedAt)))
+        .where(
+          and(
+            eq(userAppPasswords.userId, ctx.userId),
+            isNull(userAppPasswords.revokedAt)
+          )
+        )
         .run();
 
       await tx
@@ -158,6 +169,8 @@ const revokeAppPasswordRoute = protectedProcedure
       code: 'NOT_FOUND',
       message: 'App password not found'
     });
+
+    await closeSocketsForAppPassword(ctx.userId, updated.id);
 
     return { revoked: true };
   });

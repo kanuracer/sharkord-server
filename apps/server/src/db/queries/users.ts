@@ -3,13 +3,13 @@ import {
   type TJoinedUser,
   type TStorageData
 } from '@sharkord/shared';
-import { count, eq, sum } from 'drizzle-orm';
+import { and, count, eq, isNull, sum } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/sqlite-core';
 import jwt from 'jsonwebtoken';
 import { db } from '..';
 import { signFile } from '../../helpers/files-crypto';
 import type { TTokenPayload } from '../../types';
-import { files, userRoles, users } from '../schema';
+import { files, userAppPasswords, userRoles, users } from '../schema';
 import { getServerToken, getSettings } from './server';
 
 const getPublicUserById = async (
@@ -349,6 +349,22 @@ const getUserByToken = async (token: string | undefined) => {
     if (!token) return undefined;
 
     const decoded = jwt.verify(token, await getServerToken()) as TTokenPayload;
+
+    if (decoded.appPasswordId) {
+      const activeAppPassword = await db
+        .select({ id: userAppPasswords.id })
+        .from(userAppPasswords)
+        .where(
+          and(
+            eq(userAppPasswords.id, decoded.appPasswordId),
+            eq(userAppPasswords.userId, decoded.userId),
+            isNull(userAppPasswords.revokedAt)
+          )
+        )
+        .get();
+
+      if (!activeAppPassword) return undefined;
+    }
 
     const user = await getUserById(decoded.userId);
 

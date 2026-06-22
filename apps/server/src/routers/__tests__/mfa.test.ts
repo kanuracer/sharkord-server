@@ -1,9 +1,19 @@
+import { sha256 } from '@sharkord/shared';
 import { describe, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
+import jwt from 'jsonwebtoken';
+import { WebSocket } from 'ws';
 import { initTest } from '../../__tests__/helpers';
+import { TEST_SECRET_TOKEN } from '../../__tests__/seed';
 import { tdb } from '../../__tests__/setup';
+import { getUserByToken } from '../../db/queries/users';
 import { userAppPasswords, users } from '../../db/schema';
 import { generateTotpCode } from '../../utils/totp';
+import {
+  closeSocketsForAppPassword,
+  registerWsClient,
+  unregisterWsClient
+} from '../../utils/ws-client-registry';
 
 describe('users MFA router', () => {
   test('starts setup, enables MFA with a valid code, and reports status', async () => {
@@ -145,10 +155,93 @@ describe('users MFA router', () => {
     expect(list[0]!.name).toBe('Desktop app');
     expect(list[0]).not.toHaveProperty('tokenHash');
 
-    const revoked = await caller.users.mfa.revokeAppPassword({ id: list[0]!.id });
+    const revoked = await caller.users.mfa.revokeAppPassword({
+      id: list[0]!.id
+    });
     expect(revoked).toEqual({ revoked: true });
 
     const refreshed = await caller.users.mfa.appPasswords();
     expect(refreshed[0]!.revokedAt).toBeNumber();
+  });
+
+  test('getUserByToken rejects JWTs tied to revoked app passwords', async () => {
+    const { caller } = await initTest(1);
+    const inserted = await tdb
+      .insert(userAppPasswords)
+      .values({
+        userId: 1,
+        name: 'Desktop app',
+        tokenHash: 'revocable-token-hash',
+        createdAt: Date.now(),
+        lastUsedAt: Date.now(),
+        revokedAt: null
+      })
+      .returning({ id: userAppPasswords.id })
+      .get();
+
+    const token = jwt.sign(
+      { userId: 1, appPasswordId: inserted.id },
+      await sha256(TEST_SECRET_TOKEN),
+      { expiresIn: '86400s' }
+    );
+
+    expect(await getUserByToken(token)).toBeTruthy();
+    await caller.users.mfa.revokeAppPassword({ id: inserted.id });
+    expect(await getUserByToken(token)).toBeUndefined();
+  });
+
+  test('app-password revoke closes matching active desktop sockets', async () => {
+    await initTest(1);
+    const inserted = await tdb
+      .insert(userAppPasswords)
+      .values({
+        userId: 1,
+        name: 'Desktop app',
+        tokenHash: 'revocable-token-hash',
+        createdAt: Date.now(),
+        lastUsedAt: Date.now(),
+        revokedAt: null
+      })
+      .returning({ id: userAppPasswords.id })
+      .get();
+
+    const matchingToken = jwt.sign(
+      { userId: 1, appPasswordId: inserted.id },
+      await sha256(TEST_SECRET_TOKEN),
+      { expiresIn: '86400s' }
+    );
+    const passwordToken = jwt.sign(
+      { userId: 1 },
+      await sha256(TEST_SECRET_TOKEN),
+      {
+        expiresIn: '86400s'
+      }
+    );
+    const closeCalls: Array<{ code?: number; reason?: string }> = [];
+    const matchingSocket = {
+      token: matchingToken,
+      readyState: WebSocket.OPEN,
+      close: (code?: number, reason?: string) =>
+        closeCalls.push({ code, reason })
+    } as unknown as WebSocket;
+    const passwordSocket = {
+      token: passwordToken,
+      readyState: WebSocket.OPEN,
+      close: (code?: number, reason?: string) =>
+        closeCalls.push({ code, reason })
+    } as unknown as WebSocket;
+
+    registerWsClient(matchingSocket);
+    registerWsClient(passwordSocket);
+    try {
+      await closeSocketsForAppPassword(1, inserted.id);
+    } finally {
+      unregisterWsClient(matchingSocket);
+      unregisterWsClient(passwordSocket);
+    }
+
+    expect(closeCalls).toEqual([
+      { code: 4001, reason: 'App password revoked' }
+    ]);
   });
 });

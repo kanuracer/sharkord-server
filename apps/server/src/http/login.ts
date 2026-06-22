@@ -273,6 +273,7 @@ const loginRouteHandler = async (
 
   let newAppPassword: string | undefined;
   let newAppPasswordId: number | undefined;
+  let authenticatedAppPasswordId: number | undefined;
 
   if (existingUser.mfaEnabled) {
     let mfaSatisfiedByAppPassword = false;
@@ -294,6 +295,7 @@ const loginRouteHandler = async (
 
       if (matched) {
         mfaSatisfiedByAppPassword = true;
+        authenticatedAppPasswordId = matched.id;
         await db
           .update(userAppPasswords)
           .set({ lastUsedAt: Date.now() })
@@ -329,13 +331,23 @@ const loginRouteHandler = async (
           .returning({ id: userAppPasswords.id })
           .get();
         newAppPasswordId = appPassword.id;
+        authenticatedAppPasswordId = appPassword.id;
       }
     }
   }
 
-  const token = jwt.sign({ userId: existingUser.id }, await getServerToken(), {
-    expiresIn: '604800s' // 7 days
-  });
+  const token = jwt.sign(
+    {
+      userId: existingUser.id,
+      ...(authenticatedAppPasswordId
+        ? { appPasswordId: authenticatedAppPasswordId }
+        : {})
+    },
+    await getServerToken(),
+    {
+      expiresIn: '604800s' // 7 days
+    }
+  );
 
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(

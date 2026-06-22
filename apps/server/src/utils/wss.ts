@@ -32,6 +32,7 @@ import { invariant } from './invariant';
 import { pubsub } from './pubsub';
 import type { Context } from './trpc';
 import { isConnectionTokenAuthenticated } from './ws-auth-sessions';
+import { registerWsClient, unregisterWsClient } from './ws-client-registry';
 
 let wss: WebSocketServer | undefined;
 
@@ -259,6 +260,7 @@ const createWsServer = async (server: http.Server) => {
       try {
         ws.userId = undefined;
         ws.token = '';
+        registerWsClient(ws);
 
         ws.once('message', async (message) => {
           try {
@@ -275,6 +277,8 @@ const createWsServer = async (server: http.Server) => {
         });
 
         ws.on('close', async () => {
+          unregisterWsClient(ws);
+
           try {
             const userId = ws.userId;
 

@@ -440,5 +440,20 @@
   "mfaDisableTitle": "Disable 2FA",
   "mfaDisableDesc": "Enter your current password and authenticator code. Disabling 2FA also revokes remembered devices.",
   "mfaDisableButton": "Disable 2FA",
-  "mfaDisabled": "Two-factor authentication disabled"
+  "mfaDisabled": "Two-factor authentication disabled",
+  "appPasswordsTitle": "App passwords",
+  "appPasswordsDesc": "Remembered desktop devices use these revocable tokens after a successful password and 2FA login. Tokens are stored locally in the secure store and only stored hashed on the server.",
+  "appPasswordsRefresh": "Refresh",
+  "appPasswordsLoading": "Loading...",
+  "appPasswordsLoadError": "Could not load app passwords",
+  "appPasswordCreated": "Created",
+  "appPasswordLastUsed": "Last used",
+  "appPasswordNever": "Never",
+  "appPasswordRevokedAt": "Revoked",
+  "appPasswordRevoke": "Revoke",
+  "appPasswordRevoked": "Revoked",
+  "appPasswordNone": "No app passwords for this account.",
+  "appPasswordRevokeConfirmTitle": "Revoke app password?",
+  "appPasswordRevokeConfirmDesc": "That desktop client will be disconnected and must sign in again with password and 2FA.",
+  "appPasswordRevokeError": "Could not revoke app password"
 }

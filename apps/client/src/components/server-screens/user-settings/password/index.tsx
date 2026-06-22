@@ -1,3 +1,4 @@
+import { requestConfirmation } from '@/features/dialogs/actions';
 import { closeServerScreens } from '@/features/server-screens/actions';
 import { useForm } from '@/hooks/use-form';
 import { getTRPCClient } from '@/lib/trpc';
@@ -25,6 +26,14 @@ type TMfaSetup = {
   otpauthUrl: string;
 };
 
+type TAppPasswordSummary = {
+  id: number;
+  name: string;
+  createdAt: number;
+  lastUsedAt: number | null;
+  revokedAt: number | null;
+};
+
 const Password = memo(() => {
   const { t } = useTranslation('settings');
   const passwordForm = useForm({
@@ -41,6 +50,8 @@ const Password = memo(() => {
   const [mfaSetup, setMfaSetup] = useState<TMfaSetup | null>(null);
   const [mfaQrCodeUrl, setMfaQrCodeUrl] = useState('');
   const [mfaLoading, setMfaLoading] = useState(true);
+  const [appPasswords, setAppPasswords] = useState<TAppPasswordSummary[]>([]);
+  const [appPasswordsLoading, setAppPasswordsLoading] = useState(true);
 
   const refreshMfaStatus = useCallback(async () => {
     const trpc = getTRPCClient();
@@ -48,18 +59,29 @@ const Password = memo(() => {
     setMfaEnabled(status.enabled);
   }, []);
 
+  const refreshAppPasswords = useCallback(async () => {
+    const trpc = getTRPCClient();
+    const rows = await trpc.users.mfa.appPasswords.query();
+    setAppPasswords(rows);
+  }, []);
+
   useEffect(() => {
     refreshMfaStatus()
       .catch(() => toast.error(t('mfaStatusError')))
       .finally(() => setMfaLoading(false));
-  }, [refreshMfaStatus, t]);
+    refreshAppPasswords()
+      .catch(() => toast.error(t('appPasswordsLoadError')))
+      .finally(() => setAppPasswordsLoading(false));
+  }, [refreshAppPasswords, refreshMfaStatus, t]);
 
   useEffect(() => {
     let active = true;
 
     if (!mfaSetup?.otpauthUrl) {
       setMfaQrCodeUrl('');
-      return () => { active = false; };
+      return () => {
+        active = false;
+      };
     }
 
     QRCode.toString(mfaSetup.otpauthUrl, {
@@ -69,10 +91,17 @@ const Password = memo(() => {
       width: 192,
       color: { dark: '#111827', light: '#ffffff' }
     })
-      .then((svg) => { if (active) setMfaQrCodeUrl(`data:image/svg+xml;utf8,${encodeURIComponent(svg)}`); })
-      .catch(() => { if (active) setMfaQrCodeUrl(''); });
+      .then((svg) => {
+        if (active)
+          setMfaQrCodeUrl(`data:image/svg+xml;utf8,${encodeURIComponent(svg)}`);
+      })
+      .catch(() => {
+        if (active) setMfaQrCodeUrl('');
+      });
 
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [mfaSetup?.otpauthUrl]);
 
   const updatePassword = useCallback(async () => {
@@ -95,12 +124,13 @@ const Password = memo(() => {
       setMfaSetup(setup);
       setMfaEnabled(false);
       toast.success(t('mfaSetupStarted'));
+      await refreshAppPasswords();
     } catch (error) {
       mfaForm.setTrpcErrors(error);
     } finally {
       setMfaLoading(false);
     }
-  }, [mfaForm, t]);
+  }, [mfaForm, refreshAppPasswords, t]);
 
   const enableMfa = useCallback(async () => {
     const trpc = getTRPCClient();
@@ -110,14 +140,19 @@ const Password = memo(() => {
       await trpc.users.mfa.enable.mutate({ code: mfaForm.values.setupCode });
       setMfaSetup(null);
       setMfaEnabled(true);
-      mfaForm.setValues({ setupCode: '', disablePassword: '', disableCode: '' });
+      mfaForm.setValues({
+        setupCode: '',
+        disablePassword: '',
+        disableCode: ''
+      });
       toast.success(t('mfaEnabled'));
+      await refreshAppPasswords();
     } catch (error) {
       mfaForm.setTrpcErrors(error);
     } finally {
       setMfaLoading(false);
     }
-  }, [mfaForm, t]);
+  }, [mfaForm, refreshAppPasswords, t]);
 
   const disableMfa = useCallback(async () => {
     const trpc = getTRPCClient();
@@ -130,14 +165,19 @@ const Password = memo(() => {
       });
       setMfaSetup(null);
       setMfaEnabled(false);
-      mfaForm.setValues({ setupCode: '', disablePassword: '', disableCode: '' });
+      mfaForm.setValues({
+        setupCode: '',
+        disablePassword: '',
+        disableCode: ''
+      });
       toast.success(t('mfaDisabled'));
+      await refreshAppPasswords();
     } catch (error) {
       mfaForm.setTrpcErrors(error);
     } finally {
       setMfaLoading(false);
     }
-  }, [mfaForm, t]);
+  }, [mfaForm, refreshAppPasswords, t]);
 
   const copyTotpUrl = useCallback(async () => {
     if (!mfaSetup?.otpauthUrl) return;
@@ -149,6 +189,38 @@ const Password = memo(() => {
       toast.error(t('mfaSetupUriCopyFailed'));
     }
   }, [mfaSetup?.otpauthUrl, t]);
+
+  const formatAppPasswordTime = useCallback(
+    (value: number | null) => {
+      if (!value) return t('appPasswordNever');
+      return new Date(value).toLocaleString();
+    },
+    [t]
+  );
+
+  const revokeAppPassword = useCallback(
+    async (entry: TAppPasswordSummary) => {
+      if (entry.revokedAt) return;
+      const confirmed = await requestConfirmation({
+        title: t('appPasswordRevokeConfirmTitle'),
+        message: t('appPasswordRevokeConfirmDesc'),
+        confirmLabel: t('appPasswordRevoke'),
+        variant: 'danger'
+      });
+      if (!confirmed) return;
+
+      const trpc = getTRPCClient();
+      try {
+        await trpc.users.mfa.revokeAppPassword.mutate({ id: entry.id });
+        toast.success(t('appPasswordRevoked'));
+        await refreshAppPasswords();
+      } catch (error) {
+        toast.error(t('appPasswordRevokeError'));
+        mfaForm.setTrpcErrors(error);
+      }
+    },
+    [mfaForm, refreshAppPasswords, t]
+  );
 
   return (
     <div className="space-y-6">
@@ -190,7 +262,9 @@ const Password = memo(() => {
               {mfaEnabled ? t('mfaStatusEnabled') : t('mfaStatusDisabled')}
             </AlertTitle>
             <AlertDescription>
-              {mfaEnabled ? t('mfaStatusEnabledDesc') : t('mfaStatusDisabledDesc')}
+              {mfaEnabled
+                ? t('mfaStatusEnabledDesc')
+                : t('mfaStatusDisabledDesc')}
             </AlertDescription>
           </Alert>
 
@@ -235,7 +309,11 @@ const Password = memo(() => {
                 <Button variant="outline" onClick={copyTotpUrl}>
                   {t('mfaCopySetupUri')}
                 </Button>
-                <Button variant="outline" onClick={startMfaSetup} disabled={mfaLoading}>
+                <Button
+                  variant="outline"
+                  onClick={startMfaSetup}
+                  disabled={mfaLoading}
+                >
                   {t('mfaRegenerateSetup')}
                 </Button>
               </div>
@@ -249,7 +327,10 @@ const Password = memo(() => {
                 />
               </Group>
 
-              <Button onClick={enableMfa} disabled={mfaLoading || !mfaForm.values.setupCode}>
+              <Button
+                onClick={enableMfa}
+                disabled={mfaLoading || !mfaForm.values.setupCode}
+              >
                 {t('mfaEnableButton')}
               </Button>
             </div>
@@ -285,6 +366,66 @@ const Password = memo(() => {
               </Button>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card data-testid="APP_PASSWORDS_CARD">
+        <CardHeader>
+          <CardTitle>{t('appPasswordsTitle')}</CardTitle>
+          <CardDescription>{t('appPasswordsDesc')}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              onClick={refreshAppPasswords}
+              disabled={appPasswordsLoading}
+            >
+              {appPasswordsLoading
+                ? t('appPasswordsLoading')
+                : t('appPasswordsRefresh')}
+            </Button>
+          </div>
+          <div className="appPasswordRows space-y-2">
+            {appPasswords.length ? (
+              appPasswords.map((entry) => (
+                <div
+                  className="appPasswordRow flex flex-col gap-3 rounded-lg border bg-muted/20 p-3 sm:flex-row sm:items-center sm:justify-between"
+                  key={entry.id}
+                >
+                  <div className="min-w-0 space-y-1">
+                    <strong className="block truncate text-sm">
+                      {entry.name}
+                    </strong>
+                    <small className="block break-words text-muted-foreground">
+                      {t('appPasswordCreated')}:{' '}
+                      {formatAppPasswordTime(entry.createdAt)} ·{' '}
+                      {t('appPasswordLastUsed')}:{' '}
+                      {formatAppPasswordTime(entry.lastUsedAt)}
+                      {entry.revokedAt
+                        ? ` · ${t('appPasswordRevokedAt')}: ${formatAppPasswordTime(entry.revokedAt)}`
+                        : ''}
+                    </small>
+                  </div>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    aria-label={`${t('appPasswordRevoke')}: ${entry.name}`}
+                    onClick={() => revokeAppPassword(entry)}
+                    disabled={!!entry.revokedAt}
+                  >
+                    {entry.revokedAt
+                      ? t('appPasswordRevoked')
+                      : t('appPasswordRevoke')}
+                  </Button>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {t('appPasswordNone')}
+              </p>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>

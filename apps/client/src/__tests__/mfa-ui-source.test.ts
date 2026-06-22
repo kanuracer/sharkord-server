@@ -33,9 +33,35 @@ describe('MFA client UI source guards', () => {
     expect(password).toContain('MFA_SETUP_QR_CODE');
     expect(password).toContain('QRCode.toString');
     expect(password).toContain('data:image/svg+xml');
-    expect(password).toContain('alt={t(\'mfaQrCodeAlt\')}');
+    expect(password).toContain("alt={t('mfaQrCodeAlt')}");
     expect(settingsLocale.mfaTitle).toBe('Two-factor authentication');
     expect(settingsLocale.mfaSetupButton).toBe('Set up 2FA');
-    expect(settingsLocale.mfaQrCodeAlt).toBe('QR code for authenticator app setup');
+    expect(settingsLocale.mfaQrCodeAlt).toBe(
+      'QR code for authenticator app setup'
+    );
+  });
+
+  test('password settings expose app-password list and revoke controls', () => {
+    const password = read(
+      'apps/client/src/components/server-screens/user-settings/password/index.tsx'
+    );
+    const settingsLocale = JSON.parse(
+      read('apps/client/src/i18n/locales/en/settings.json')
+    ) as Record<string, string>;
+
+    expect(password).toContain('users.mfa.appPasswords.query');
+    expect(password).toContain('users.mfa.revokeAppPassword.mutate');
+    expect(password).toContain('appPasswordRows');
+    expect(password).toContain('appPasswordRow');
+    expect(password).toContain('requestConfirmation');
+    expect(password).not.toContain('window.confirm');
+    expect(password).toContain(
+      "aria-label={`${t('appPasswordRevoke')}: ${entry.name}`}"
+    );
+    expect(settingsLocale.appPasswordsTitle).toBe('App passwords');
+    expect(settingsLocale.appPasswordRevoke).toBe('Revoke');
+    expect(settingsLocale.appPasswordNone).toBe(
+      'No app passwords for this account.'
+    );
   });
 });
