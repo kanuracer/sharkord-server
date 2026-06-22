@@ -69,6 +69,11 @@ type Events = {
     channelId: number;
     userId: number;
   };
+  [ServerEvents.USER_DISCONNECT_VOICE]: {
+    channelId: number;
+    userId: number;
+    moderatorId: number;
+  };
   [ServerEvents.USER_VOICE_STATE_UPDATE]: {
     channelId: number;
     userId: number;

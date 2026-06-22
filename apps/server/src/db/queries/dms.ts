@@ -1,8 +1,13 @@
 import type { TDirectMessageConversation } from '@sharkord/shared';
 import { TRPCError } from '@trpc/server';
-import { and, eq, inArray, max, or } from 'drizzle-orm';
+import { and, eq, inArray, isNull, max, or } from 'drizzle-orm';
 import { db } from '..';
-import { channels, directMessages, messages } from '../schema';
+import {
+  channels,
+  directMessageHiddenStates,
+  directMessages,
+  messages
+} from '../schema';
 import { getChannelsReadStatesForUser } from './channels';
 import { getSettings } from './server';
 
@@ -50,12 +55,27 @@ const getDirectMessageConversations = async (
   userId: number
 ): Promise<TDirectMessageConversation[]> => {
   const rows = await db
-    .select()
+    .select({
+      channelId: directMessages.channelId,
+      userOneId: directMessages.userOneId,
+      userTwoId: directMessages.userTwoId,
+      createdAt: directMessages.createdAt
+    })
     .from(directMessages)
+    .leftJoin(
+      directMessageHiddenStates,
+      and(
+        eq(directMessageHiddenStates.channelId, directMessages.channelId),
+        eq(directMessageHiddenStates.userId, userId)
+      )
+    )
     .where(
-      or(
-        eq(directMessages.userOneId, userId),
-        eq(directMessages.userTwoId, userId)
+      and(
+        or(
+          eq(directMessages.userOneId, userId),
+          eq(directMessages.userTwoId, userId)
+        ),
+        isNull(directMessageHiddenStates.userId)
       )
     );
 

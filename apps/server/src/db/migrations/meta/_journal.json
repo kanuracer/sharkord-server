@@ -148,6 +148,13 @@
       "when": 1782062000000,
       "tag": "0020_add_user_app_passwords",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1782146475674,
+      "tag": "0021_far_thunderball",
+      "breakpoints": true
     }
   ]
 }

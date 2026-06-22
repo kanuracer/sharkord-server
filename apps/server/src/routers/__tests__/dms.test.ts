@@ -92,6 +92,52 @@ describe('dms router', () => {
     );
   });
 
+  test('should hide a direct message conversation only for the current user', async () => {
+    const { caller: callerA } = await initTest(3);
+    const { caller: callerB } = await initTest(4);
+
+    await callerA.dms.hide({ channelId: 3 });
+
+    const listA = await callerA.dms.get();
+    const listB = await callerB.dms.get();
+
+    expect(listA.some((dm) => dm.channelId === 3)).toBe(false);
+    expect(listB.some((dm) => dm.channelId === 3)).toBe(true);
+    expect(
+      await tdb.select().from(channels).where(eq(channels.id, 3)).get()
+    ).toBeDefined();
+    expect(
+      await tdb
+        .select()
+        .from(directMessages)
+        .where(eq(directMessages.channelId, 3))
+        .get()
+    ).toBeDefined();
+    expect(
+      await tdb.select().from(messages).where(eq(messages.channelId, 3))
+    ).not.toHaveLength(0);
+  });
+
+  test('should unhide a direct message conversation when the other participant sends a new message', async () => {
+    const { caller: callerA } = await initTest(3);
+    const { caller: callerB } = await initTest(4);
+
+    await callerA.dms.hide({ channelId: 3 });
+    expect((await callerA.dms.get()).some((dm) => dm.channelId === 3)).toBe(
+      false
+    );
+
+    await callerB.messages.send({
+      channelId: 3,
+      content: 'visible again',
+      files: []
+    });
+
+    expect((await callerA.dms.get()).some((dm) => dm.channelId === 3)).toBe(
+      true
+    );
+  });
+
   test('should delete a direct message conversation for participants', async () => {
     const { caller: callerA } = await initTest(3);
     const { caller: callerB } = await initTest(4);
@@ -99,7 +145,6 @@ describe('dms router', () => {
     await callerB.channels.markAsRead({ channelId: 3 });
 
     await callerA.dms.delete({ channelId: 3 });
-
     const listA = await callerA.dms.get();
     const listB = await callerB.dms.get();
 
@@ -181,12 +226,13 @@ describe('dms router', () => {
       flavor: 'kanuracer',
       capabilities: {
         directMessageDelete: true,
+        directMessageHide: true,
         ownerToken: true,
         serverSelfUpdate: true,
         voiceUserMove: true,
+        voiceUserDisconnect: true,
         mfaAppPasswords: true
       }
     });
   });
-
 });

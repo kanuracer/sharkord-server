@@ -541,6 +541,24 @@ const directMessages = sqliteTable(
   ]
 );
 
+const directMessageHiddenStates = sqliteTable(
+  'direct_message_hidden_states',
+  {
+    channelId: integer('channel_id')
+      .notNull()
+      .references(() => channels.id, { onDelete: 'cascade' }),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    hiddenAt: integer('hidden_at').notNull()
+  },
+  (t) => [
+    primaryKey({ columns: [t.channelId, t.userId] }),
+    index('direct_message_hidden_states_user_idx').on(t.userId),
+    index('direct_message_hidden_states_channel_idx').on(t.channelId)
+  ]
+);
+
 const pluginData = sqliteTable('plugin_data', {
   pluginId: text('plugin_id').notNull().primaryKey(),
   enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),
@@ -557,6 +575,7 @@ export {
   channelRolePermissions,
   channels,
   channelUserPermissions,
+  directMessageHiddenStates,
   directMessages,
   emojis,
   files,

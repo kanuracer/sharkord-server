@@ -2,6 +2,7 @@ import { ServerEvents } from '@sharkord/shared';
 import { protectedProcedure, t } from '../../utils/trpc';
 import { deleteDirectMessageRoute } from './delete-direct-message';
 import { getDirectMessagesRoute } from './get-direct-messages';
+import { hideDirectMessageRoute } from './hide-direct-message';
 import { openDirectMessageRoute } from './open-direct-message';
 
 const onDmConversationOpenRoute = protectedProcedure.subscription(
@@ -16,6 +17,7 @@ const onDmConversationOpenRoute = protectedProcedure.subscription(
 export const dmsRouter = t.router({
   get: getDirectMessagesRoute,
   open: openDirectMessageRoute,
+  hide: hideDirectMessageRoute,
   delete: deleteDirectMessageRoute,
   onConversationOpen: onDmConversationOpenRoute
 });

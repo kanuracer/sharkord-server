@@ -55,6 +55,11 @@ const saveVolumesToStorage = (volumes: TVolumeSettings) => {
   }
 };
 
+const defaultVolumeForKey = (key: TVolumeKey): number => {
+  if (key.startsWith('userscreen-') || key.startsWith('external-')) return 0;
+  return 100;
+};
+
 const VolumeControlProvider = memo(
   ({ children }: TVolumeControlProviderProps) => {
     const [volumes, setVolumes] = useState<TVolumeSettings>(
@@ -65,7 +70,7 @@ const VolumeControlProvider = memo(
 
     const getVolume = useCallback(
       (key: TVolumeKey): number => {
-        return volumes[key] ?? 100;
+        return volumes[key] ?? defaultVolumeForKey(key);
       },
       [volumes]
     );
@@ -84,7 +89,7 @@ const VolumeControlProvider = memo(
 
     const toggleMute = useCallback((key: TVolumeKey) => {
       setVolumes((prev) => {
-        const currentVolume = prev[key] ?? 100;
+        const currentVolume = prev[key] ?? defaultVolumeForKey(key);
         const isMuted = currentVolume === 0;
         const newVolume = isMuted
           ? (previousVolumesRef.current[key] ?? 100)

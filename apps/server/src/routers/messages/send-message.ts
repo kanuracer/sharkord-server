@@ -5,6 +5,7 @@ import {
   getPlainTextFromHtml,
   isEmptyMessage,
   Permission,
+  ServerEvents,
   toDomCommand
 } from '@sharkord/shared';
 import { eq } from 'drizzle-orm';
@@ -25,6 +26,7 @@ import { enqueueProcessMetadata } from '../../queues/message-metadata';
 import { fileManager } from '../../utils/file-manager';
 import { invariant } from '../../utils/invariant';
 import { protectedProcedure, rateLimitedProcedure } from '../../utils/trpc';
+import { unhideDirectMessageForOtherParticipants } from '../dms/hide-direct-message';
 
 const sendMessageRoute = rateLimitedProcedure(protectedProcedure, {
   maxRequests: config.rateLimiters.sendAndEditMessage.maxRequests,
@@ -270,6 +272,23 @@ const sendMessageRoute = rateLimitedProcedure(protectedProcedure, {
     }
 
     publishMessage(message.id, input.channelId, 'create');
+
+    if (isDmChannel) {
+      const unhiddenUserIds = await unhideDirectMessageForOtherParticipants(
+        input.channelId,
+        ctx.userId
+      );
+
+      if (unhiddenUserIds.length > 0) {
+        ctx.pubsub.publishFor(
+          unhiddenUserIds,
+          ServerEvents.DM_CONVERSATION_OPEN,
+          {
+            channelId: input.channelId
+          }
+        );
+      }
+    }
 
     if (input.parentMessageId) {
       publishReplyCount(input.parentMessageId, input.channelId);

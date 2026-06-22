@@ -5,7 +5,9 @@ import { connectProducerTransportRoute } from './connect-producer-transport';
 import { consumeRoute } from './consume';
 import { createConsumerTransportRoute } from './create-consumer-transport';
 import { createProducerTransportRoute } from './create-producer-transport';
+import { disconnectUserRoute } from './disconnect-user';
 import {
+  onUserDisconnectVoiceRoute,
   onUserJoinVoiceRoute,
   onUserLeaveVoiceRoute,
   onUserUpdateVoiceStateRoute,
@@ -28,6 +30,7 @@ export const voiceRouter = t.router({
   leave: leaveVoiceRoute,
   updateState: updateVoiceStateRoute,
   moveUser: moveUserRoute,
+  disconnectUser: disconnectUserRoute,
   createProducerTransport: createProducerTransportRoute,
   connectProducerTransport: connectProducerTransportRoute,
   createConsumerTransport: createConsumerTransportRoute,
@@ -39,6 +42,7 @@ export const voiceRouter = t.router({
   getProducers: getProducersRoute,
   onJoin: onUserJoinVoiceRoute,
   onLeave: onUserLeaveVoiceRoute,
+  onDisconnect: onUserDisconnectVoiceRoute,
   onUpdateState: onUserUpdateVoiceStateRoute,
   onNewProducer: onVoiceNewProducerRoute,
   onProducerClosed: onVoiceProducerClosedRoute,
