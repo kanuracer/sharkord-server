@@ -17,6 +17,7 @@ const capabilitiesRoute = protectedProcedure.query(() => ({
     roleMentionFanout: true,
     threadInbox: true,
     mfaAppPasswords: true,
+    mfaReauthHardening: true,
     oidcLogin: true,
     voiceDeviceHotSwap: true
   }

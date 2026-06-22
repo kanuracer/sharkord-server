@@ -14,6 +14,9 @@ export enum ActivityLogType {
   USER_UNBANNED = 'USER_UNBANNED',
   USER_DELETED = 'USER_DELETED',
   USER_UPDATED_PASSWORD = 'USER_UPDATED_PASSWORD',
+  MFA_REAUTH_FAILED = 'MFA_REAUTH_FAILED',
+  MFA_RECOVERY_CODES_REGENERATED = 'MFA_RECOVERY_CODES_REGENERATED',
+  MFA_DISABLED = 'MFA_DISABLED',
   // -------------------- ROLES --------------------
   CREATED_ROLE = 'CREATED_ROLE',
   DELETED_ROLE = 'DELETED_ROLE',
@@ -78,6 +81,16 @@ export type TActivityLogDetailsMap = {
   };
   [ActivityLogType.USER_LEFT]: {};
   [ActivityLogType.USER_UPDATED_PASSWORD]: {};
+  [ActivityLogType.MFA_REAUTH_FAILED]: {
+    action: 'disable' | 'regenerate_recovery_codes';
+    reason: 'password' | 'totp';
+  };
+  [ActivityLogType.MFA_RECOVERY_CODES_REGENERATED]: {
+    count: number;
+  };
+  [ActivityLogType.MFA_DISABLED]: {
+    appPasswordsRevoked: boolean;
+  };
   // -------------------- ROLES --------------------
   [ActivityLogType.CREATED_ROLE]: {
     roleId: number;

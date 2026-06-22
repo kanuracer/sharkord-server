@@ -239,6 +239,7 @@ describe('dms router', () => {
         roleMentionFanout: true,
         threadInbox: true,
         mfaAppPasswords: true,
+        mfaReauthHardening: true,
         oidcLogin: true,
         voiceDeviceHotSwap: true
       }
