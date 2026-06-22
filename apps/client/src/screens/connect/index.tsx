@@ -24,6 +24,12 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Group,
   Input,
   Label,
@@ -38,13 +44,11 @@ const Connect = memo(() => {
   const { values, r, setErrors, onChange } = useForm<{
     identity: string;
     password: string;
-    totpCode: string;
     rememberCredentials: boolean;
     autoLogin: boolean;
   }>({
     identity: getLocalStorageItem(LocalStorageKey.IDENTITY) || '',
     password: getLocalStorageItem(LocalStorageKey.USER_PASSWORD) || '',
-    totpCode: '',
     rememberCredentials: !!getLocalStorageItem(
       LocalStorageKey.REMEMBER_CREDENTIALS
     ),
@@ -52,6 +56,9 @@ const Connect = memo(() => {
   });
 
   const [loading, setLoading] = useState(false);
+  const [totpDialogOpen, setTotpDialogOpen] = useState(false);
+  const [totpCode, setTotpCode] = useState('');
+  const [totpError, setTotpError] = useState<string | undefined>();
   const info = useInfo();
 
   const inviteCode = useMemo(() => {
@@ -60,61 +67,82 @@ const Connect = memo(() => {
     return invite || undefined;
   }, []);
 
-  const onConnectClick = useCallback(async () => {
-    setLoading(true);
+  const login = useCallback(
+    async (code?: string) => {
+      setLoading(true);
 
-    try {
-      const url = getUrlFromServer();
-      const response = await fetch(`${url}/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          identity: values.identity,
-          password: values.password,
-          totpCode: values.totpCode || undefined,
-          invite: inviteCode,
-          autoLogin: values.autoLogin || undefined
-        })
-      });
+      try {
+        const url = getUrlFromServer();
+        const response = await fetch(`${url}/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            identity: values.identity,
+            password: values.password,
+            totpCode: code || undefined,
+            invite: inviteCode,
+            autoLogin: values.autoLogin || undefined
+          })
+        });
 
-      if (!response.ok) {
-        const data = await response.json();
+        if (!response.ok) {
+          const data = await response.json();
 
-        setErrors(data.errors || {});
-        return;
+          if (data.errors?.totpCode) {
+            setTotpDialogOpen(true);
+            setTotpError(data.errors.totpCode);
+            return;
+          }
+
+          setErrors(data.errors || {});
+          return;
+        }
+
+        const data = (await response.json()) as { token: string };
+
+        setSessionStorageItem(SessionStorageKey.TOKEN, data.token);
+        setLocalStorageItemBool(LocalStorageKey.AUTO_LOGIN, values.autoLogin);
+
+        if (values.autoLogin) {
+          setLocalStorageItem(LocalStorageKey.AUTO_LOGIN_TOKEN, data.token);
+        } else {
+          removeLocalStorageItem(LocalStorageKey.AUTO_LOGIN_TOKEN);
+        }
+
+        setTotpDialogOpen(false);
+        setTotpCode('');
+        setTotpError(undefined);
+        await connect();
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+
+        toast.error(t('connectError', { message: errorMessage }));
+      } finally {
+        setLoading(false);
       }
+    }, [
+      values.identity,
+      values.password,
+      values.autoLogin,
+      setErrors,
+      inviteCode,
+      t
+    ]
+  );
 
-      const data = (await response.json()) as { token: string };
+  const onConnectClick = useCallback(() => login(), [login]);
 
-      setSessionStorageItem(SessionStorageKey.TOKEN, data.token);
-      setLocalStorageItemBool(LocalStorageKey.AUTO_LOGIN, values.autoLogin);
-
-      if (values.autoLogin) {
-        setLocalStorageItem(LocalStorageKey.AUTO_LOGIN_TOKEN, data.token);
-      } else {
-        removeLocalStorageItem(LocalStorageKey.AUTO_LOGIN_TOKEN);
-      }
-
-      await connect();
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-
-      toast.error(t('connectError', { message: errorMessage }));
-    } finally {
-      setLoading(false);
+  const onTotpSubmit = useCallback(() => {
+    if (!totpCode.trim()) {
+      setTotpError(t('totpCodeRequired'));
+      return;
     }
-  }, [
-    values.identity,
-    values.password,
-    values.totpCode,
-    values.autoLogin,
-    setErrors,
-    inviteCode,
-    t
-  ]);
+
+    login(totpCode.trim());
+  }, [login, totpCode, t]);
 
   const logoSrc = useMemo(() => {
     if (info?.logo) {
@@ -175,15 +203,6 @@ const Connect = memo(() => {
                 data-testid={TestId.CONNECT_PASSWORD_INPUT}
               />
             </Group>
-            <Group label={t('2FA-Code optional')}>
-              <Input
-                {...r('totpCode')}
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                placeholder="123456"
-                onEnter={onConnectClick}
-              />
-            </Group>
           </form>
 
           <div
@@ -240,6 +259,45 @@ const Connect = memo(() => {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={totpDialogOpen} onOpenChange={setTotpDialogOpen}>
+        <DialogContent data-testid={TestId.CONNECT_TOTP_DIALOG}>
+          <DialogHeader>
+            <DialogTitle>{t('totpDialogTitle')}</DialogTitle>
+            <DialogDescription>{t('totpDialogDesc')}</DialogDescription>
+          </DialogHeader>
+          <Group label={t('totpCodeLabel')}>
+            <Input
+              value={totpCode}
+              onChange={(event) => {
+                setTotpCode(event.target.value);
+                setTotpError(undefined);
+              }}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              autoFocus
+              error={totpError}
+              data-testid={TestId.CONNECT_TOTP_INPUT}
+              onEnter={onTotpSubmit}
+            />
+          </Group>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setTotpDialogOpen(false);
+                setTotpCode('');
+                setTotpError(undefined);
+              }}
+            >
+              {t('cancel')}
+            </Button>
+            <Button onClick={onTotpSubmit} disabled={loading || !totpCode.trim()}>
+              {t('totpDialogSubmit')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="flex justify-center items-center gap-2 text-xs text-muted-foreground select-none">
         <span>v{VITE_APP_VERSION}</span>

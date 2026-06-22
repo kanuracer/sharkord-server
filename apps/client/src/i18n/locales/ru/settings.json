@@ -262,7 +262,6 @@
   "categoryInfoDesc": "Управление основной информацией вашей категории",
   "categoryNameLabel": "Название",
   "categoryNamePlaceholder": "Введите название категории",
-
   "emojiTitle": "Смайлики",
   "searchEmojisPlaceholder": "Поиск смайлов...",
   "noEmojisFound": "Смайлики не найдены",
@@ -283,24 +282,19 @@
   "uploadEmojiTitle": "Загрузить собственные смайлы",
   "uploadEmojiDesc": "Выберите смайлик для редактирования или загрузите новые для настройки вашего сервера",
   "uploadEmojiBtn": "Загрузить смайлики",
-
   "diskTotalSpace": "Общее дисковое пространство",
   "diskAvailableSpace": "Доступное место",
   "diskSystemUsed": "Использовано системой",
   "diskSharkordUsed": "Использовано Sharkord",
   "diskUsage": "Использование диска",
   "diskUsedPercent": "{{percent}}% использовано",
-
   "overflowDeleteOldFiles": "Удалить старые файлы",
   "overflowPreventUploads": "Запретить загрузку новых файлов",
-
   "imageOptimizationLabel": "Включить оптимизацию изображений",
   "imageOptimizationDesc": "Преобразует поддерживаемые загруженные изображения в оптимизированные файлы WebP.",
   "imageQualityLabel": "Качество изображения",
   "imageQualityDesc": "Управляет качеством WebP для оптимизированных изображений. Более высокие значения сохраняют больше деталей, но используют больше места в хранилище.",
-
   "moderateUserAction": "Модерировать пользователя",
-
   "inviteCopied": "Пригласительный код скопирован в буфер обмена",
   "inviteNever": "Никогда",
   "inviteExpired": "Истекло",
@@ -312,7 +306,6 @@
   "inviteDeletedSuccess": "Приглашение удалено",
   "failedDeleteInvite": "Не удалось удалить приглашение",
   "inviteDefault": "По умолчанию",
-
   "modViewLoading": "Загрузка...",
   "modViewTitle": "Панель модерации пользователей",
   "goBack": "Вернуться назад",
@@ -342,18 +335,15 @@
   "failedUnban": "Не удалось разблокировать пользователя",
   "deleteBtn": "Удалить",
   "modViewAssignRoleBtn": "Назначить роль",
-
   "serverActivityTitle": "Активность сервера",
   "serverActivityMessages": "Сообщения",
   "serverActivityLinks": "Ссылки",
   "serverActivityFiles": "Файлы",
-
   "modViewStorageTitle": "Хранилище",
   "modViewStorageUsed": "Использовано",
   "modViewStorageQuota": "Квота",
   "modViewStorageFiles": "Файлы",
   "modViewStorageUsage": "Использование",
-
   "detailsTitle": "Подробнее",
   "userIdLabel": "Идентификатор пользователя",
   "identityDetailLabel": "Логин",
@@ -368,7 +358,6 @@
   "unknownValue": "Неизвестно",
   "naValue": "Н/Д",
   "noReasonProvidedDetail": "Причина не указана",
-
   "searchMessagesPlaceholder": "Искать в сообщениях...",
   "noMessagesFound": "Сообщений не найдено.",
   "searchFilesPlaceholder": "Поиск файлов...",
@@ -379,7 +368,6 @@
   "deleteFileMsg": "Вы уверены, что хотите удалить этот файл?",
   "fileDeletedSuccess": "Файл успешно удален",
   "failedDeleteFile": "Не удалось удалить файл",
-
   "removeBtn": "Удалить",
   "pluginRemoved": "Плагин успешно удален",
   "failedRemovePlugin": "Не удалось удалить плагин",
@@ -404,7 +392,6 @@
   "marketplaceSdkIncompatible": "Несовместимо",
   "marketplaceVerifiedTooltip": "Этот плагин был проверен Sharkord.",
   "marketplaceInstallSuccess": "\"{{name}}\" успешно установлен. Вам нужно включить его вручную, чтобы начать использовать.",
-
   "noiseSuppressionNone": "Нет",
   "noiseSuppressionInfoTitle": "Режимы шумоподавления",
   "noiseSuppressionInfoDescription": "Примерные компромиссы для каждого режима. Фактическое использование ЦП, памяти и качество голоса зависят от вашего браузера, устройства и микрофона.",
@@ -435,5 +422,29 @@
   "signedUrlsTtlDesc": "Как долго подписанный URL остается действительным до истечения срока действия. Более короткие интервалы повышают безопасность, но могут вызвать неудобства для пользователей, получающих доступ к файлам.",
   "signedUrlsTtlUnit": "минут",
   "standard": "Стандартный",
-  "experimental": "экспериментальный"
+  "experimental": "экспериментальный",
+  "mfaTitle": "Two-factor authentication",
+  "mfaDesc": "Protect your account with a time-based one-time password from an authenticator app.",
+  "mfaStatusEnabled": "2FA is enabled",
+  "mfaStatusEnabledDesc": "Your password must be followed by an authenticator code when signing in from a new session.",
+  "mfaStatusDisabled": "2FA is disabled",
+  "mfaStatusDisabledDesc": "Set up 2FA to require an authenticator code after your password.",
+  "mfaStatusError": "Could not load two-factor status",
+  "mfaSetupButton": "Set up 2FA",
+  "mfaSetupStarted": "Two-factor setup started",
+  "mfaSetupTitle": "Set up your authenticator app",
+  "mfaSetupDesc": "Open the setup link in your authenticator app or copy the setup URI. Then enter the 6-digit code to enable 2FA.",
+  "mfaSetupOpenAuthenticator": "Open setup link",
+  "mfaSecretLabel": "Secret key",
+  "mfaCopySetupUri": "Copy setup URI",
+  "mfaSetupUriCopied": "Setup URI copied",
+  "mfaSetupUriCopyFailed": "Could not copy setup URI",
+  "mfaRegenerateSetup": "Generate new secret",
+  "mfaVerificationCodeLabel": "Authenticator code",
+  "mfaEnableButton": "Enable 2FA",
+  "mfaEnabled": "Two-factor authentication enabled",
+  "mfaDisableTitle": "Disable 2FA",
+  "mfaDisableDesc": "Enter your current password and authenticator code. Disabling 2FA also revokes remembered devices.",
+  "mfaDisableButton": "Disable 2FA",
+  "mfaDisabled": "Two-factor authentication disabled"
 }

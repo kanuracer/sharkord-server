@@ -301,7 +301,6 @@
   "categoryInfoDesc": "Správa základních informací o vaší kategorii",
   "categoryNameLabel": "Název",
   "categoryNamePlaceholder": "Zadejte název kategorie",
-
   "emojiTitle": "Emoji",
   "searchEmojisPlaceholder": "Hledat emoji...",
   "noEmojisFound": "Nebyla nalezena žádná emoji",
@@ -322,30 +321,24 @@
   "uploadEmojiTitle": "Nahrát vlastní emoji",
   "uploadEmojiDesc": "Vyberte emoji k úpravě nebo nahrajte nová a přizpůsobte si svůj server",
   "uploadEmojiBtn": "Nahrát emoji",
-
   "diskTotalSpace": "Celková kapacita disku",
   "diskAvailableSpace": "Volné místo",
   "diskSystemUsed": "Využito systémem",
   "diskSharkordUsed": "Využito Sharkordem",
   "diskUsage": "Využití disku",
   "diskUsedPercent": "{{percent}} % využito",
-
   "overflowDeleteOldFiles": "Smazat staré soubory",
   "overflowPreventUploads": "Zabránit nahrávání nových souborů",
-
   "imageOptimizationLabel": "Povolit optimalizaci obrázků",
   "imageOptimizationDesc": "Převádí podporované nahrané obrázky na optimalizované soubory WebP.",
   "imageQualityLabel": "Kvalita obrázku",
   "imageQualityDesc": "Určuje kvalitu WebP pro optimalizované obrázky. Vyšší hodnoty zachovají více detailů, ale použijí více úložiště.",
-
   "signedUrlsLabel": "Podepsané adresy URL",
   "signedUrlsDesc": "Pokud je tato možnost povolena, vyžadují všechny adresy URL souborů podepsaný token s dobou platnosti. Tím se zabrání neoprávněnému přístupu k souborům pomocí odhadování adresy URL. Pokud je tato možnost zakázána, jsou soubory ve veřejných kanálech přístupné komukoli, kdo zná adresu URL.",
   "signedUrlsTtlLabel": "Platnost podepsané adresy URL",
   "signedUrlsTtlDesc": "Jak dlouho zůstane podepsaná adresa URL platná, než vyprší její platnost. Kratší doba zvyšuje zabezpečení, ale může uživatelům způsobit nepříjemnosti při přístupu k souborům.",
   "signedUrlsTtlUnit": "minut",
-
   "moderateUserAction": "Moderovat uživatele",
-
   "inviteCopied": "Kód pozvánky byl zkopírován do schránky",
   "inviteNever": "Nikdy",
   "inviteExpired": "Vypršela",
@@ -357,7 +350,6 @@
   "inviteDeletedSuccess": "Pozvánka byla odstraněna",
   "failedDeleteInvite": "Pozvánku se odstranit nepodařilo",
   "inviteDefault": "Výchozí",
-
   "modViewLoading": "Načítání...",
   "modViewTitle": "Panel moderování uživatelů",
   "goBack": "Zpět",
@@ -387,18 +379,15 @@
   "failedUnban": "Uživatele se odblokovat nepodařilo",
   "deleteBtn": "Smazat",
   "modViewAssignRoleBtn": "Přiřadit roli",
-
   "serverActivityTitle": "Aktivita serveru",
   "serverActivityMessages": "Zprávy",
   "serverActivityLinks": "Odkazy",
   "serverActivityFiles": "Soubory",
-
   "modViewStorageTitle": "Úložiště",
   "modViewStorageUsed": "Využité úložiště",
   "modViewStorageQuota": "Kvóta",
   "modViewStorageFiles": "Soubory",
   "modViewStorageUsage": "Využití",
-
   "detailsTitle": "Podrobnosti",
   "userIdLabel": "ID uživatele",
   "identityDetailLabel": "Identita",
@@ -413,7 +402,6 @@
   "unknownValue": "Neznámé",
   "naValue": "N/A",
   "noReasonProvidedDetail": "Nebyl uveden žádný důvod",
-
   "searchMessagesPlaceholder": "Hledat ve zprávách...",
   "noMessagesFound": "Nebyly nalezeny žádné zprávy.",
   "searchFilesPlaceholder": "Hledat soubory...",
@@ -424,7 +412,30 @@
   "deleteFileMsg": "Opravdu chcete tento soubor odstranit?",
   "fileDeletedSuccess": "Soubor byl úspěšně odstraněn",
   "failedDeleteFile": "Soubor se odstranit nepodařilo",
-
   "standard": "Standardní",
-  "experimental": "experimentální"
+  "experimental": "experimentální",
+  "mfaTitle": "Two-factor authentication",
+  "mfaDesc": "Protect your account with a time-based one-time password from an authenticator app.",
+  "mfaStatusEnabled": "2FA is enabled",
+  "mfaStatusEnabledDesc": "Your password must be followed by an authenticator code when signing in from a new session.",
+  "mfaStatusDisabled": "2FA is disabled",
+  "mfaStatusDisabledDesc": "Set up 2FA to require an authenticator code after your password.",
+  "mfaStatusError": "Could not load two-factor status",
+  "mfaSetupButton": "Set up 2FA",
+  "mfaSetupStarted": "Two-factor setup started",
+  "mfaSetupTitle": "Set up your authenticator app",
+  "mfaSetupDesc": "Open the setup link in your authenticator app or copy the setup URI. Then enter the 6-digit code to enable 2FA.",
+  "mfaSetupOpenAuthenticator": "Open setup link",
+  "mfaSecretLabel": "Secret key",
+  "mfaCopySetupUri": "Copy setup URI",
+  "mfaSetupUriCopied": "Setup URI copied",
+  "mfaSetupUriCopyFailed": "Could not copy setup URI",
+  "mfaRegenerateSetup": "Generate new secret",
+  "mfaVerificationCodeLabel": "Authenticator code",
+  "mfaEnableButton": "Enable 2FA",
+  "mfaEnabled": "Two-factor authentication enabled",
+  "mfaDisableTitle": "Disable 2FA",
+  "mfaDisableDesc": "Enter your current password and authenticator code. Disabling 2FA also revokes remembered devices.",
+  "mfaDisableButton": "Disable 2FA",
+  "mfaDisabled": "Two-factor authentication disabled"
 }

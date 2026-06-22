@@ -12,5 +12,11 @@
   "connectError": "连接失败：{{message}}",
   "loggingInAutomatically": "正在自动登录...",
   "loadingApp": "正在加载 Sharkord",
-  "loadingPlugins": "正在加载插件"
+  "loadingPlugins": "正在加载插件",
+  "cancel": "Cancel",
+  "totpDialogTitle": "Two-factor authentication",
+  "totpDialogDesc": "Enter the 6-digit code from your authenticator app to finish signing in.",
+  "totpCodeLabel": "Authentication code",
+  "totpCodeRequired": "Two-factor code required",
+  "totpDialogSubmit": "Verify & Connect"
 }

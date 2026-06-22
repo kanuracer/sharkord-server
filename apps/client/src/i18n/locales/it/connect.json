@@ -12,5 +12,11 @@
   "connectError": "Impossibile connettersi: {{message}}",
   "loggingInAutomatically": "Accesso automatico in corso...",
   "loadingApp": "Caricamento di Sharkord",
-  "loadingPlugins": "Caricamento plugin"
+  "loadingPlugins": "Caricamento plugin",
+  "cancel": "Cancel",
+  "totpDialogTitle": "Two-factor authentication",
+  "totpDialogDesc": "Enter the 6-digit code from your authenticator app to finish signing in.",
+  "totpCodeLabel": "Authentication code",
+  "totpCodeRequired": "Two-factor code required",
+  "totpDialogSubmit": "Verify & Connect"
 }

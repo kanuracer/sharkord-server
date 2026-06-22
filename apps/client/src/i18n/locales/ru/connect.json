@@ -12,5 +12,11 @@
   "connectError": "Не удалось подключиться: {{message}}",
   "loggingInAutomatically": "Автоматический вход...",
   "loadingApp": "Загрузка Sharkord",
-  "loadingPlugins": "Загрузка плагинов"
+  "loadingPlugins": "Загрузка плагинов",
+  "cancel": "Cancel",
+  "totpDialogTitle": "Two-factor authentication",
+  "totpDialogDesc": "Enter the 6-digit code from your authenticator app to finish signing in.",
+  "totpCodeLabel": "Authentication code",
+  "totpCodeRequired": "Two-factor code required",
+  "totpDialogSubmit": "Verify & Connect"
 }

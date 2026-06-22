@@ -12,5 +12,11 @@
   "connectError": "K serveru se připojit nepodařilo: {{message}}",
   "loggingInAutomatically": "Automaticky se připojuji...",
   "loadingApp": "Načítám Sharkord",
-  "loadingPlugins": "Načítám rozšíření"
+  "loadingPlugins": "Načítám rozšíření",
+  "cancel": "Cancel",
+  "totpDialogTitle": "Two-factor authentication",
+  "totpDialogDesc": "Enter the 6-digit code from your authenticator app to finish signing in.",
+  "totpCodeLabel": "Authentication code",
+  "totpCodeRequired": "Two-factor code required",
+  "totpDialogSubmit": "Verify & Connect"
 }
