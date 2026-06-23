@@ -266,6 +266,21 @@ export const sendVoiceSoundboard = async (
   }
 };
 
+export const stopUserVoiceMedia = async (
+  userId: number,
+  kind: StreamKind.VIDEO | StreamKind.SCREEN | StreamKind.SCREEN_AUDIO
+): Promise<void> => {
+  const voiceUserMediaModeration = true;
+  if (!voiceUserMediaModeration) return;
+  const client = getTRPCClient();
+
+  try {
+    await client.voice.closeUserProducer.mutate({ userId, kind });
+  } catch (error) {
+    toast.error(getTrpcError(error, 'Failed to stop user voice media'));
+  }
+};
+
 export const recoverVoiceMedia = async (): Promise<void> => {
   const client = getTRPCClient();
 

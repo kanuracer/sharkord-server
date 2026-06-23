@@ -1,6 +1,12 @@
 import { assertVoiceChatClose } from '@/features/app/actions';
 import { store } from '@/features/store';
-import type { TChannel, TChannelUserPermissionsMap } from '@sharkord/shared';
+import { getTRPCClient } from '@/lib/trpc';
+import {
+  getTrpcError,
+  type TChannel,
+  type TChannelUserPermissionsMap
+} from '@sharkord/shared';
+import { toast } from 'sonner';
 import { markChannelAsRead } from '../actions';
 import { serverSliceActions } from '../slice';
 import {
@@ -79,6 +85,11 @@ export const setChannelPermissions = (
   }
 };
 
+export type TChannelLinkTarget = Pick<
+  TChannel,
+  'id' | 'name' | 'type' | 'categoryId'
+> & { channelId: number };
+
 export const setChannelReadState = (
   channelId: number,
   payload: {
@@ -113,4 +124,21 @@ export const setChannelReadState = (
   store.dispatch(
     serverSliceActions.setChannelReadState({ channelId, count: actualCount })
   );
+};
+
+export const resolveChannelLink = async (
+  channelId: number
+): Promise<TChannelLinkTarget | undefined> => {
+  const channelLinks = true;
+  if (!channelLinks) return undefined;
+  const client = getTRPCClient();
+
+  try {
+    return (await client.channels.resolveLink.query({
+      channelId
+    })) as TChannelLinkTarget;
+  } catch (error) {
+    toast.error(getTrpcError(error, 'Failed to resolve channel link'));
+    return undefined;
+  }
 };

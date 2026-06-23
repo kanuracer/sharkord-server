@@ -1,5 +1,6 @@
 import { t } from '../../utils/trpc';
 import { closeProducerRoute } from './close-producer';
+import { closeUserProducerRoute } from './close-user-producer';
 import { connectConsumerTransportRoute } from './connect-consumer-transport';
 import { connectProducerTransportRoute } from './connect-producer-transport';
 import { consumeRoute } from './consume';
@@ -44,6 +45,7 @@ export const voiceRouter = t.router({
   createConsumerTransport: createConsumerTransportRoute,
   connectConsumerTransport: connectConsumerTransportRoute,
   closeProducer: closeProducerRoute,
+  closeUserProducer: closeUserProducerRoute,
   produce: produceRoute,
   consume: consumeRoute,
   setConsumerQuality: setConsumerQualityRoute,

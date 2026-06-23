@@ -9,6 +9,7 @@ const capabilitiesRoute = protectedProcedure.query(() => ({
     serverSelfUpdate: true,
     voiceUserMove: true,
     voiceUserDisconnect: true,
+    voiceUserMediaModeration: true,
     channelCrossCategoryMove: true,
     incomingWebhooks: true,
     retentionPolicies: true,
@@ -25,7 +26,8 @@ const capabilitiesRoute = protectedProcedure.query(() => ({
     voiceTextChatCoupling: true,
     customEmojiReactionIds: true,
     voiceSoundboard: true,
-    voiceMediaRecovery: true
+    voiceMediaRecovery: true,
+    channelLinks: true
   }
 }));
 

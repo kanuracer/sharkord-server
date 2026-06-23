@@ -231,6 +231,7 @@ describe('dms router', () => {
         serverSelfUpdate: true,
         voiceUserMove: true,
         voiceUserDisconnect: true,
+        voiceUserMediaModeration: true,
         channelCrossCategoryMove: true,
         incomingWebhooks: true,
         retentionPolicies: true,
@@ -247,7 +248,8 @@ describe('dms router', () => {
         voiceTextChatCoupling: true,
         customEmojiReactionIds: true,
         voiceSoundboard: true,
-        voiceMediaRecovery: true
+        voiceMediaRecovery: true,
+        channelLinks: true
       }
     });
   });

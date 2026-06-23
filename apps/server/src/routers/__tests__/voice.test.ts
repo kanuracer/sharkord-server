@@ -1,4 +1,4 @@
-import { ChannelType, Permission } from '@sharkord/shared';
+import { ChannelType, Permission, StreamKind } from '@sharkord/shared';
 import { describe, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 import { initTest } from '../../__tests__/helpers';
@@ -326,5 +326,66 @@ describe('dms router', () => {
     await expect(caller.dms.delete({ channelId: 3 })).rejects.toThrow(
       'You are not a participant in this DM channel'
     );
+  });
+
+  test('should allow users with MOVE_MEMBERS to stop another user camera and screen producers', async () => {
+    const { caller: ownerCaller } = await initTest(1);
+    const channelId = await ownerCaller.channels.add({
+      type: ChannelType.VOICE,
+      name: 'Media Moderation Target',
+      categoryId: 2
+    });
+
+    const { caller: targetCaller } = await initTest(4);
+    clearVoiceUser(4);
+    await targetCaller.voice.join({
+      channelId,
+      state: { micMuted: false, soundMuted: false }
+    });
+
+    const runtime = VoiceRuntime.findById(channelId)!;
+    const closedKinds: string[] = [];
+    const fakeProducer = (kind: string) =>
+      ({
+        closed: false,
+        kind: kind === 'screen_audio' ? 'audio' : kind,
+        type: 'simple',
+        rtpParameters: { encodings: [] },
+        close() {
+          this.closed = true;
+          closedKinds.push(kind);
+          this.observer.emitClose();
+        },
+        observer: {
+          handlers: [] as Array<() => void>,
+          on(event: string, handler: () => void) {
+            if (event === 'close') this.handlers.push(handler);
+          },
+          emitClose() {
+            for (const handler of this.handlers) handler();
+          }
+        }
+      }) as any;
+
+    runtime.addProducer(4, StreamKind.VIDEO, fakeProducer('video'));
+    runtime.addProducer(4, StreamKind.SCREEN, fakeProducer('screen'));
+    runtime.updateUserState(4, { webcamEnabled: true, sharingScreen: true });
+
+    await ownerCaller.voice.closeUserProducer({
+      userId: 4,
+      kind: StreamKind.VIDEO
+    });
+    await ownerCaller.voice.closeUserProducer({
+      userId: 4,
+      kind: StreamKind.SCREEN
+    });
+
+    expect(closedKinds).toEqual(['video', 'screen']);
+    expect(runtime.getProducer(StreamKind.VIDEO, 4)).toBeUndefined();
+    expect(runtime.getProducer(StreamKind.SCREEN, 4)).toBeUndefined();
+    expect(runtime.getUserState(4)).toMatchObject({
+      webcamEnabled: false,
+      sharingScreen: false
+    });
   });
 });
