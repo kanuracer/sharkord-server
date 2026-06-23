@@ -2,8 +2,12 @@ import { ChannelPermission, ChannelType } from '@sharkord/shared';
 import { describe, expect, test } from 'bun:test';
 import { initTest } from '../../__tests__/helpers';
 import { tdb } from '../../__tests__/setup';
-import { channelRolePermissions, channelUserPermissions } from '../../db/schema';
 import { getChannelsReadStatesForUser } from '../../db/queries/channels';
+import {
+  channelRolePermissions,
+  channelUserPermissions,
+  userRoles
+} from '../../db/schema';
 
 describe('channels router', () => {
   test('should throw when user lacks permissions (add)', async () => {
@@ -95,7 +99,6 @@ describe('channels router', () => {
     ).rejects.toThrow('Insufficient permissions');
   });
 
-
   test('should list only users that can access a private channel', async () => {
     const { caller } = await initTest(1);
     const now = Date.now();
@@ -122,12 +125,42 @@ describe('channels router', () => {
       createdAt: now
     });
 
-    const accessMembers = await caller.channels.getAccessibleMembers({ channelId: 1 });
-    const allMembers = await caller.channels.getAccessibleMembers({ channelId: 1, includeAll: true });
+    const accessMembers = await caller.channels.getAccessibleMembers({
+      channelId: 1
+    });
+    const allMembers = await caller.channels.getAccessibleMembers({
+      channelId: 1,
+      includeAll: true
+    });
 
     expect(accessMembers.map((user) => user.id).sort()).toEqual([1, 2, 3]);
     expect(allMembers.map((user) => user.id).sort()).toEqual([1, 2, 3, 4]);
-    expect(accessMembers.every((user) => user.password === '')).toBe(true);
+    expect(
+      accessMembers.every(
+        (user) => (user as typeof user & { password?: string }).password === ''
+      )
+    ).toBe(true);
+  });
+
+  test('should sort accessible members by server role precedence before user name', async () => {
+    const { caller } = await initTest(1);
+    const now = Date.now();
+
+    await tdb.insert(userRoles).values({
+      userId: 4,
+      roleId: 1,
+      createdAt: now
+    });
+
+    const members = await caller.channels.getAccessibleMembers({
+      channelId: 1,
+      includeAll: true
+    });
+
+    expect(members.map((user) => user.id)).toEqual([1, 4, 2, 3]);
+    expect(
+      members.map((user) => [...user.roleIds].sort((a, b) => a - b))
+    ).toEqual([[1], [1, 2], [2], [2]]);
   });
 
   test('should expose channel access member filtering capability', async () => {
