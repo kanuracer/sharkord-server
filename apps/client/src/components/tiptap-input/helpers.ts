@@ -20,8 +20,14 @@ const isTextPresentation = (emoji: string): boolean => {
   );
 };
 
-// checks if the emoji should use the fallback image (if available) instead of the native emoji character
-const shouldUseFallbackImage = (emoji: TEmojiItem): boolean =>
-  !!emoji.fallbackImage && (!emoji.emoji || isTextPresentation(emoji.emoji));
+const getUserAgent = (userAgent?: string): string =>
+  userAgent ?? (typeof navigator === 'undefined' ? '' : navigator.userAgent);
 
-export { isTextPresentation, shouldUseFallbackImage, type TEmojiItem };
+const shouldForceEmojiFallbackImages = (userAgent?: string): boolean =>
+  /firefox|librewolf/i.test(getUserAgent(userAgent));
+
+// checks if the emoji should use the fallback image (if available) instead of the native emoji character
+const shouldUseFallbackImage = (emoji: TEmojiItem, userAgent?: string): boolean =>
+  !!emoji.fallbackImage && (shouldForceEmojiFallbackImages(userAgent) || !emoji.emoji || isTextPresentation(emoji.emoji));
+
+export { isTextPresentation, shouldForceEmojiFallbackImages, shouldUseFallbackImage, type TEmojiItem };

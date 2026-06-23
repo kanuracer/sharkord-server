@@ -241,7 +241,8 @@ describe('dms router', () => {
         mfaAppPasswords: true,
         mfaReauthHardening: true,
         oidcLogin: true,
-        voiceDeviceHotSwap: true
+        voiceDeviceHotSwap: true,
+        webRtcAnnouncedAddress: true
       }
     });
   });

@@ -8,6 +8,7 @@ import {
   restoreSpawn
 } from './bun-mediasoup-workaround.js';
 import { IS_PRODUCTION } from './env.js';
+import { normalizeWebRtcAnnouncedAddress } from './webrtc-announced-address.js';
 
 let mediaSoupWorker: mediasoup.types.Worker<mediasoup.types.AppData>;
 let webRtcServer: mediasoup.types.WebRtcServer<mediasoup.types.AppData>;
@@ -47,7 +48,7 @@ const loadMediasoup = async () => {
   logger.debug('Mediasoup worker loaded');
 
   if (IS_PRODUCTION) {
-    const announcedAddress = config.webRtc.announcedAddress || SERVER_PUBLIC_IP;
+    const announcedAddress = normalizeWebRtcAnnouncedAddress(config.webRtc.announcedAddress) || normalizeWebRtcAnnouncedAddress(SERVER_PUBLIC_IP);
 
     webRtcServer = await mediaSoupWorker.createWebRtcServer({
       listenInfos: [
