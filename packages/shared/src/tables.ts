@@ -109,6 +109,8 @@ type TPublicUser = Pick<
   | 'name'
   | 'bannerColor'
   | 'bio'
+  | 'statusOverride'
+  | 'statusMessage'
   | 'avatar'
   | 'avatarId'
   | 'banner'

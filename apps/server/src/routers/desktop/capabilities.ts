@@ -29,7 +29,9 @@ const capabilitiesRoute = protectedProcedure.query(() => ({
     voiceMediaRecovery: true,
     channelLinks: true,
     directMessagePinning: true,
-    channelAccessMembers: true
+    channelAccessMembers: true,
+    customUserStatus: true,
+    notificationSoundControls: true
   }
 }));
 

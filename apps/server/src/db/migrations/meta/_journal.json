@@ -176,6 +176,13 @@
       "when": 1782151000000,
       "tag": "0024_user_oidc_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1782262800000,
+      "tag": "0025_custom_user_status",
+      "breakpoints": true
     }
   ]
 }

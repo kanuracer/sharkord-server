@@ -7,6 +7,7 @@ import {
   browserNotificationsForMentionsSelector,
   browserNotificationsForRepliesSelector,
   browserNotificationsSelector,
+  notificationSoundsSelector,
   devicesSelector,
   isAltHeldSelector,
   isAutoConnectingSelector,
@@ -59,6 +60,8 @@ export const useMessageJumpTarget = () =>
 
 export const useBrowserNotificationsForReplies = () =>
   useSelector(browserNotificationsForRepliesSelector);
+
+export const useNotificationSounds = () => useSelector(notificationSoundsSelector);
 
 export const useVoiceChatSidebar = () =>
   useSelector(voiceChatSidebarDataSelector);

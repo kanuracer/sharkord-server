@@ -127,6 +127,12 @@ const UserPopover = memo(({ userId, children }: TUserPopoverProps) => {
             </div>
           )}
 
+          {user.statusMessage && (
+            <div className="mt-3 rounded-md bg-muted px-3 py-2 text-sm text-foreground">
+              {user.statusMessage}
+            </div>
+          )}
+
           {user.bio && (
             <div className="mt-3">
               <p className="text-sm text-foreground leading-relaxed">

@@ -22,6 +22,7 @@ export interface TAppState {
   browserNotificationsForMentions: boolean;
   browserNotificationsForDms: boolean;
   browserNotificationsForReplies: boolean;
+  notificationSounds: boolean;
   messageJumpTarget: TMessageJumpToTarget | undefined;
   voiceChatSidebarOpen: boolean;
   voiceChatChannelId: number | undefined;
@@ -59,6 +60,10 @@ const initialState: TAppState = {
   browserNotificationsForReplies: getLocalStorageItemBool(
     LocalStorageKey.BROWSER_NOTIFICATIONS_FOR_REPLIES,
     false
+  ),
+  notificationSounds: getLocalStorageItemBool(
+    LocalStorageKey.NOTIFICATION_SOUNDS,
+    true
   ),
   messageJumpTarget: undefined,
   voiceChatSidebarOpen: getLocalStorageItemBool(
@@ -139,6 +144,9 @@ export const appSlice = createSlice({
       action: PayloadAction<boolean>
     ) => {
       state.browserNotificationsForReplies = action.payload;
+    },
+    setNotificationSounds: (state, action: PayloadAction<boolean>) => {
+      state.notificationSounds = action.payload;
     },
     setMessageJumpTarget: (
       state,

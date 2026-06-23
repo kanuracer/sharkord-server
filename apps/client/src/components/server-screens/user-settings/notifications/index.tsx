@@ -2,13 +2,15 @@ import {
   setBrowserNotifications,
   setBrowserNotificationsForDms,
   setBrowserNotificationsForMentions,
-  setBrowserNotificationsForReplies
+  setBrowserNotificationsForReplies,
+  setNotificationSounds
 } from '@/features/app/actions';
 import {
   useBrowserNotifications,
   useBrowserNotificationsForDms,
   useBrowserNotificationsForMentions,
-  useBrowserNotificationsForReplies
+  useBrowserNotificationsForReplies,
+  useNotificationSounds
 } from '@/features/app/hooks';
 import {
   Card,
@@ -28,6 +30,7 @@ const Notifications = memo(() => {
   const browserNotificationsForMentions = useBrowserNotificationsForMentions();
   const browserNotificationsForDms = useBrowserNotificationsForDms();
   const browserNotificationsForReplies = useBrowserNotificationsForReplies();
+  const notificationSounds = useNotificationSounds();
 
   return (
     <Card>
@@ -71,6 +74,12 @@ const Notifications = memo(() => {
             onCheckedChange={(value) =>
               setBrowserNotificationsForReplies(value)
             }
+          />
+        </Group>
+        <Group label={t('notificationSoundsLabel', 'Notification sounds')} description={t('notificationSoundsDesc', 'Play a sound when new messages arrive.')}>
+          <Switch
+            checked={notificationSounds}
+            onCheckedChange={(value) => setNotificationSounds(value)}
           />
         </Group>
       </CardContent>

@@ -33,7 +33,7 @@ export const handleUserJoin = (user: TJoinedPublicUser) => {
   const foundUser = userByIdSelector(state, user.id);
 
   if (foundUser) {
-    updateUser(user.id, { ...user, status: UserStatus.ONLINE });
+    updateUser(user.id, { ...user, status: user.status ?? UserStatus.ONLINE });
   } else {
     addUser(user);
   }

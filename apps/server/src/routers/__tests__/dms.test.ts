@@ -251,7 +251,9 @@ describe('dms router', () => {
         voiceMediaRecovery: true,
         channelLinks: true,
         directMessagePinning: true,
-        channelAccessMembers: true
+        channelAccessMembers: true,
+        customUserStatus: true,
+        notificationSoundControls: true
       }
     });
   });

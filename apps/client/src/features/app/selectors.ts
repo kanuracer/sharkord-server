@@ -43,6 +43,9 @@ export const browserNotificationsForDmsSelector = (state: IRootState) =>
 export const browserNotificationsForRepliesSelector = (state: IRootState) =>
   state.app.browserNotificationsForReplies;
 
+export const notificationSoundsSelector = (state: IRootState) =>
+  state.app.notificationSounds;
+
 export const messageJumpTargetSelector = (state: IRootState) =>
   state.app.messageJumpTarget;
 

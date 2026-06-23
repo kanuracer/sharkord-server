@@ -3,6 +3,7 @@ import {
   browserNotificationsForMentionsSelector,
   browserNotificationsForRepliesSelector,
   browserNotificationsSelector,
+  notificationSoundsSelector,
   threadSidebarDataSelector
 } from '@/features/app/selectors';
 import { store } from '@/features/store';
@@ -120,6 +121,7 @@ export const addMessages = (
     const state = store.getState();
     const ownUserId = ownUserIdSelector(state);
     const hasBrowserNotificationsEnabled = browserNotificationsSelector(state);
+    const shouldPlayNotificationSound = notificationSoundsSelector(state);
     const notificationsForMentionsOnly =
       browserNotificationsForMentionsSelector(state);
     const targetMessage = messages[0];
@@ -140,10 +142,10 @@ export const addMessages = (
         const { isOpen, parentMessageId } = threadSidebarDataSelector(state);
 
         // only play sound if the user has this thread open
-        if (isOpen && parentMessageId === targetMessage.parentMessageId) {
+        if (shouldPlayNotificationSound && isOpen && parentMessageId === targetMessage.parentMessageId) {
           playSound(SoundType.MESSAGE_RECEIVED);
         }
-      } else {
+      } else if (shouldPlayNotificationSound) {
         playSound(SoundType.MESSAGE_RECEIVED);
       }
 

@@ -202,6 +202,8 @@ const users = sqliteTable(
       onDelete: 'set null'
     }),
     bio: text('bio'),
+    statusOverride: text('status_override'),
+    statusMessage: text('status_message'),
     banned: integer('banned', { mode: 'boolean' }).notNull().default(false),
     banReason: text('ban_reason'),
     bannedAt: integer('banned_at'),

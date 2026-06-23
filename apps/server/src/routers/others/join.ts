@@ -97,9 +97,13 @@ const joinServerRoute = rateLimitedProcedure(t.procedure, {
 
     const showWelcomeDialog = settings.showWelcomeDialog && !hasJoinedBefore;
 
+    const visibleUserStatus = (u: (typeof publicUsers)[number]): UserStatus =>
+      (u.statusOverride as UserStatus | null) ??
+      (ctx.getStatusById(u.id) as UserStatus);
+
     const processedPublicUsers = publicUsers.map((u) => ({
       ...u,
-      status: ctx.getStatusById(u.id),
+      status: visibleUserStatus(u),
       _identity: undefined // remove identity before sending to client
     }));
 
@@ -116,7 +120,7 @@ const joinServerRoute = rateLimitedProcedure(t.procedure, {
 
     ctx.pubsub.publish(ServerEvents.USER_JOIN, {
       ...foundPublicUser,
-      status: UserStatus.ONLINE
+      status: visibleUserStatus(foundPublicUser)
     });
 
     if (connectionInfo?.ip) {

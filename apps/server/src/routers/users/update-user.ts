@@ -1,4 +1,4 @@
-import { DELETED_USER_IDENTITY_AND_NAME } from '@sharkord/shared';
+import { DELETED_USER_IDENTITY_AND_NAME, UserStatus } from '@sharkord/shared';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../../db';
@@ -19,7 +19,9 @@ const updateUserRoute = protectedProcedure
       bannerColor: z
         .string()
         .regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, 'Invalid hex color'),
-      bio: z.string().max(160).optional()
+      bio: z.string().max(160).optional(),
+      statusOverride: z.nativeEnum(UserStatus).nullable().optional(),
+      statusMessage: z.string().max(80).nullable().optional()
     })
   )
   .mutation(async ({ ctx, input }) => {
@@ -28,7 +30,9 @@ const updateUserRoute = protectedProcedure
       .set({
         name: input.name,
         bannerColor: input.bannerColor,
-        bio: input.bio ?? null
+        bio: input.bio ?? null,
+        statusOverride: input.statusOverride ?? null,
+        statusMessage: input.statusMessage?.trim() || null
       })
       .where(eq(users.id, ctx.userId))
       .returning()

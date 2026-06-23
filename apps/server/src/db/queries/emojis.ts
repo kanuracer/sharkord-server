@@ -13,6 +13,8 @@ const emojiSelectFields = {
     name: users.name,
     bannerColor: users.bannerColor,
     bio: users.bio,
+    statusOverride: users.statusOverride,
+    statusMessage: users.statusMessage,
     createdAt: users.createdAt,
     banned: users.banned,
     avatarId: users.avatarId,

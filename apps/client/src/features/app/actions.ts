@@ -189,6 +189,11 @@ export const setBrowserNotificationsForReplies = async (enabled: boolean) => {
   );
 };
 
+export const setNotificationSounds = (enabled: boolean) => {
+  store.dispatch(appSliceActions.setNotificationSounds(enabled));
+  setLocalStorageItemBool(LocalStorageKey.NOTIFICATION_SOUNDS, enabled);
+};
+
 export const setMessageJumpTarget = (
   payload: TMessageJumpToTarget | undefined
 ) => store.dispatch(appSliceActions.setMessageJumpTarget(payload));
