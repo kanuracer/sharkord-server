@@ -510,6 +510,16 @@ const playSound = async (type: SoundType) => {
         return sfxRemoteUserStartedScreenshare();
       case SoundType.REMOTE_USER_STOPPED_SCREENSHARE:
         return sfxRemoteUserStoppedScreenshare();
+      case SoundType.SOUNDBOARD_POP:
+        return sfxMessageSent();
+      case SoundType.SOUNDBOARD_AIRHORN:
+        return sfxRemoteUserStartedScreenshare();
+      case SoundType.SOUNDBOARD_RIMSHOT:
+        return sfxRemoteUserLeftVoiceChannel();
+      case SoundType.SOUNDBOARD_TADA:
+        return sfxOwnUserJoinedVoiceChannel();
+      case SoundType.SOUNDBOARD_BONK:
+        return sfxServerDisconnected();
 
       default:
         console.warn(`No sound effect defined for type: ${type}`);

@@ -112,6 +112,12 @@ type Events = {
     file?: TFile | null;
     expiresAt: number;
   };
+  [ServerEvents.VOICE_SOUNDBOARD]: {
+    channelId: number;
+    userId: number;
+    soundId: string;
+    createdAt: number;
+  };
 
   [ServerEvents.PLUGIN_LOG]: TLogEntry;
   [ServerEvents.PLUGIN_COMMANDS_CHANGE]: TCommandsMapByPlugin;

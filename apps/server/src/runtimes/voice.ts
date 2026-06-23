@@ -647,7 +647,7 @@ class VoiceRuntime {
     });
   };
 
-  public removeProducer(userId: number, type: StreamKind) {
+  public removeProducer(userId: number, type: StreamKind): boolean {
     let producer: Producer | undefined;
 
     switch (type) {
@@ -664,10 +664,10 @@ class VoiceRuntime {
         producer = this.screenAudioProducers[userId];
         break;
       default:
-        return;
+        return false;
     }
 
-    if (!producer) return;
+    if (!producer) return false;
 
     producer.close();
 
@@ -682,7 +682,31 @@ class VoiceRuntime {
     }
 
     this.setProducerQualityLayers(userId, type, []);
+
+    return true;
   }
+
+  public recoverUserMedia = (userId: number): StreamKind[] => {
+    const recoveredKinds = [
+      StreamKind.AUDIO,
+      StreamKind.VIDEO,
+      StreamKind.SCREEN,
+      StreamKind.SCREEN_AUDIO
+    ].filter((kind) => this.removeProducer(userId, kind));
+
+    if (
+      recoveredKinds.includes(StreamKind.VIDEO) ||
+      recoveredKinds.includes(StreamKind.SCREEN) ||
+      recoveredKinds.includes(StreamKind.SCREEN_AUDIO)
+    ) {
+      this.updateUserState(userId, {
+        webcamEnabled: false,
+        sharingScreen: false
+      });
+    }
+
+    return recoveredKinds;
+  };
 
   public getProducerQualityLayers = (remoteId: number, kind: StreamKind) => {
     return (

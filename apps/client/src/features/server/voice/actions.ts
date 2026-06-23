@@ -10,6 +10,7 @@ import {
 import { getTRPCClient } from '@/lib/trpc';
 import {
   getTrpcError,
+  StreamKind,
   type TExternalStream,
   type TVoiceUserState
 } from '@sharkord/shared';
@@ -236,6 +237,71 @@ export const sendVoiceReaction = async (emoji: string): Promise<void> => {
   } catch (error) {
     toast.error(getTrpcError(error, 'Failed to send voice reaction'));
   }
+};
+
+export type TVoiceSoundboardId =
+  | 'pop'
+  | 'airhorn'
+  | 'rimshot'
+  | 'tada'
+  | 'bonk';
+
+const SOUND_BOARD_BY_ID: Record<TVoiceSoundboardId, SoundType> = {
+  pop: SoundType.SOUNDBOARD_POP,
+  airhorn: SoundType.SOUNDBOARD_AIRHORN,
+  rimshot: SoundType.SOUNDBOARD_RIMSHOT,
+  tada: SoundType.SOUNDBOARD_TADA,
+  bonk: SoundType.SOUNDBOARD_BONK
+};
+
+export const sendVoiceSoundboard = async (
+  soundId: TVoiceSoundboardId
+): Promise<void> => {
+  const client = getTRPCClient();
+
+  try {
+    await client.voice.playSoundboard.mutate({ soundId });
+  } catch (error) {
+    toast.error(getTrpcError(error, 'Failed to send soundboard'));
+  }
+};
+
+export const recoverVoiceMedia = async (): Promise<void> => {
+  const client = getTRPCClient();
+
+  try {
+    const result = await client.voice.recoverMedia.mutate();
+    const recoveredKinds = (result?.recoveredKinds ?? []) as StreamKind[];
+    if (recoveredKinds.includes(StreamKind.VIDEO))
+      updateOwnVoiceState({ webcamEnabled: false });
+    if (
+      recoveredKinds.includes(StreamKind.SCREEN) ||
+      recoveredKinds.includes(StreamKind.SCREEN_AUDIO)
+    ) {
+      updateOwnVoiceState({ sharingScreen: false });
+    }
+    toast.success('Voice media recovered');
+  } catch (error) {
+    toast.error(getTrpcError(error, 'Failed to recover voice media'));
+  }
+};
+
+export const subscribeToVoiceSoundboard = (): (() => void) => {
+  const client = getTRPCClient();
+
+  const subscription = client.voice.onSoundboard.subscribe(undefined, {
+    onData: ({ soundId }) => {
+      void playSound(
+        SOUND_BOARD_BY_ID[soundId as TVoiceSoundboardId] ??
+          SoundType.SOUNDBOARD_POP
+      );
+    },
+    onError: (error) => {
+      logVoice('Voice soundboard subscription error', { error });
+    }
+  });
+
+  return () => subscription.unsubscribe();
 };
 
 export const subscribeToVoiceReactions = (): (() => void) => {

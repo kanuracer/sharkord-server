@@ -23,7 +23,9 @@ const capabilitiesRoute = protectedProcedure.query(() => ({
     webRtcAnnouncedAddress: true,
     voiceReactions: true,
     voiceTextChatCoupling: true,
-    customEmojiReactionIds: true
+    customEmojiReactionIds: true,
+    voiceSoundboard: true,
+    voiceMediaRecovery: true
   }
 }));
 

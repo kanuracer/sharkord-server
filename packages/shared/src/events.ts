@@ -26,6 +26,7 @@ export enum ServerEvents {
   VOICE_NEW_PRODUCER = 'voiceNewProducer',
   VOICE_PRODUCER_CLOSED = 'voiceProducerClosed',
   VOICE_REACTION = 'voiceReaction',
+  VOICE_SOUNDBOARD = 'voiceSoundboard',
 
   EMOJI_CREATE = 'emojiCreate',
   EMOJI_UPDATE = 'emojiUpdate',

@@ -4,7 +4,13 @@ import {
   shouldUseFallbackImage
 } from '@/components/tiptap-input/helpers';
 import { useChannelCan } from '@/features/server/hooks';
-import { leaveVoice, sendVoiceReaction } from '@/features/server/voice/actions';
+import {
+  leaveVoice,
+  recoverVoiceMedia,
+  sendVoiceReaction,
+  sendVoiceSoundboard,
+  type TVoiceSoundboardId
+} from '@/features/server/voice/actions';
 import { useOwnVoiceState, useVoice } from '@/features/server/voice/hooks';
 import { cn } from '@/lib/utils';
 import { ChannelPermission } from '@sharkord/shared';
@@ -14,6 +20,7 @@ import {
   MicOff,
   Monitor,
   PhoneOff,
+  RefreshCw,
   ScreenShareOff,
   Video,
   VideoOff
@@ -37,6 +44,17 @@ const ControlsBar = memo(({ channelId }: TControlsBarProps) => {
     () => recentEmojis.filter((emoji) => emoji.customId).slice(0, 4),
     [recentEmojis]
   );
+  const voiceSoundboard = true;
+  const voiceMediaRecovery = true;
+  const soundboardSounds: Array<{
+    id: TVoiceSoundboardId;
+    label: string;
+    emoji: string;
+  }> = [
+    { id: 'pop', label: 'Pop', emoji: '✨' },
+    { id: 'airhorn', label: 'Airhorn', emoji: '📣' },
+    { id: 'rimshot', label: 'Rimshot', emoji: '🥁' }
+  ];
 
   const permissions = useMemo(
     () => ({
@@ -102,6 +120,35 @@ const ControlsBar = memo(({ channelId }: TControlsBarProps) => {
             </Tooltip>
           );
         })}
+
+        {voiceSoundboard &&
+          soundboardSounds.map((sound) => (
+            <Tooltip key={sound.id} content={`Soundboard ${sound.label}`}>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-10 w-10 rounded-full text-lg"
+                onClick={() => void sendVoiceSoundboard(sound.id)}
+                aria-label={`Soundboard ${sound.label}`}
+              >
+                {sound.emoji}
+              </Button>
+            </Tooltip>
+          ))}
+
+        {voiceMediaRecovery && (
+          <Tooltip content="Recover media">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-10 w-10 rounded-full"
+              onClick={() => void recoverVoiceMedia()}
+              aria-label="Recover voice media"
+            >
+              <RefreshCw size={18} />
+            </Button>
+          </Tooltip>
+        )}
 
         <ControlToggleButton
           enabled={ownVoiceState.micMuted}

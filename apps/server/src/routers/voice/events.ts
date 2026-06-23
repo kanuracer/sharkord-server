@@ -105,6 +105,26 @@ const onVoiceReactionRoute = protectedProcedure.subscription(
   }
 );
 
+const onVoiceSoundboardRoute = protectedProcedure.subscription(
+  async ({ ctx }) => {
+    const runtime = VoiceRuntime.findRuntimeByUserId(ctx.userId);
+
+    if (!runtime) {
+      return observable<{
+        channelId: number;
+        userId: number;
+        soundId: string;
+        createdAt: number;
+      }>(() => () => {});
+    }
+
+    return ctx.pubsub.subscribeForChannel(
+      runtime.id,
+      ServerEvents.VOICE_SOUNDBOARD
+    );
+  }
+);
+
 export {
   onUserDisconnectVoiceRoute,
   onUserJoinVoiceRoute,
@@ -115,5 +135,6 @@ export {
   onVoiceProducerClosedRoute,
   onVoiceReactionRoute,
   onVoiceRemoveExternalStreamRoute,
+  onVoiceSoundboardRoute,
   onVoiceUpdateExternalStreamRoute
 };

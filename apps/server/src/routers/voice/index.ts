@@ -16,20 +16,25 @@ import {
   onVoiceProducerClosedRoute,
   onVoiceReactionRoute,
   onVoiceRemoveExternalStreamRoute,
+  onVoiceSoundboardRoute,
   onVoiceUpdateExternalStreamRoute
 } from './events';
 import { getProducersRoute } from './get-producers';
 import { joinVoiceRoute } from './join';
 import { leaveVoiceRoute } from './leave';
 import { moveUserRoute } from './move-user';
+import { playSoundboardRoute } from './play-soundboard';
 import { produceRoute } from './produce';
 import { reactVoiceRoute } from './react';
+import { recoverMediaRoute } from './recover-media';
 import { setConsumerQualityRoute } from './set-consumer-quality';
 import { updateVoiceStateRoute } from './update-state';
 
 export const voiceRouter = t.router({
   join: joinVoiceRoute,
   react: reactVoiceRoute,
+  playSoundboard: playSoundboardRoute,
+  recoverMedia: recoverMediaRoute,
   leave: leaveVoiceRoute,
   updateState: updateVoiceStateRoute,
   moveUser: moveUserRoute,
@@ -50,6 +55,7 @@ export const voiceRouter = t.router({
   onNewProducer: onVoiceNewProducerRoute,
   onProducerClosed: onVoiceProducerClosedRoute,
   onReaction: onVoiceReactionRoute,
+  onSoundboard: onVoiceSoundboardRoute,
   onAddExternalStream: onVoiceAddExternalStreamRoute,
   onUpdateExternalStream: onVoiceUpdateExternalStreamRoute,
   onRemoveExternalStream: onVoiceRemoveExternalStreamRoute
