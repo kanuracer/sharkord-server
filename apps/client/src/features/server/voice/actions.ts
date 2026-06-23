@@ -1,3 +1,4 @@
+import { retargetOpenVoiceChatSidebar } from '@/features/app/actions';
 import type { TPinnedCard } from '@/components/channel-view/voice/hooks/use-pin-card-controller';
 import { store } from '@/features/store';
 import { logVoice } from '@/helpers/browser-logger';
@@ -44,6 +45,10 @@ export const addUserToVoiceChannel = (
       state: voiceState
     })
   );
+
+  if (userId === ownUserId) {
+    retargetOpenVoiceChatSidebar(channelId);
+  }
 
   if (userId !== ownUserId && channelId === currentChannelId) {
     playSound(SoundType.REMOTE_USER_JOINED_VOICE_CHANNEL);
@@ -167,6 +172,8 @@ export const joinVoice = async (
       state: { micMuted, soundMuted }
     });
 
+    retargetOpenVoiceChatSidebar(channelId);
+
     return routerRtpCapabilities;
   } catch (error) {
     toast.error(getTrpcError(error, 'Failed to join voice channel'));
@@ -219,6 +226,44 @@ export const leaveVoice = async (options?: {
 
 export const setPinnedCard = (pinnedCard: TPinnedCard | undefined): void => {
   store.dispatch(serverSliceActions.setPinnedCard(pinnedCard));
+};
+
+export const sendVoiceReaction = async (emoji: string): Promise<void> => {
+  const client = getTRPCClient();
+
+  try {
+    await client.voice.react.mutate({ emoji });
+  } catch (error) {
+    toast.error(getTrpcError(error, 'Failed to send voice reaction'));
+  }
+};
+
+export const subscribeToVoiceReactions = (): (() => void) => {
+  const client = getTRPCClient();
+  const timers = new Map<number, () => void>();
+
+  const subscription = client.voice.onReaction.subscribe(undefined, {
+    onData: ({ userId, emoji, expiresAt }) => {
+      timers.get(userId)?.();
+      store.dispatch(serverSliceActions.setVoiceReaction({ userId, emoji, expiresAt }));
+
+      const timeout = setTimeout(() => {
+        store.dispatch(serverSliceActions.setVoiceReaction({ userId }));
+        timers.delete(userId);
+      }, Math.max(0, expiresAt - Date.now()));
+
+      timers.set(userId, () => clearTimeout(timeout));
+    },
+    onError: (error) => {
+      logVoice('Voice reaction subscription error', { error });
+    }
+  });
+
+  return () => {
+    timers.forEach((cancel) => cancel());
+    timers.clear();
+    subscription.unsubscribe();
+  };
 };
 
 export const setHideNonVideoParticipants = (value: boolean): void => {

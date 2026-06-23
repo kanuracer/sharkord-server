@@ -242,7 +242,9 @@ describe('dms router', () => {
         mfaReauthHardening: true,
         oidcLogin: true,
         voiceDeviceHotSwap: true,
-        webRtcAnnouncedAddress: true
+        webRtcAnnouncedAddress: true,
+        voiceReactions: true,
+        voiceTextChatCoupling: true
       }
     });
   });

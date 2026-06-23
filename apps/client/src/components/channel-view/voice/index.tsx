@@ -1,11 +1,12 @@
 import { useVoiceUsersByChannelId } from '@/features/server/hooks';
 import { useOwnUserId } from '@/features/server/users/hooks';
+import { subscribeToVoiceReactions } from '@/features/server/voice/actions';
 import {
   useHideNonVideoParticipants,
   useHideOwnScreenShare,
   useVoiceChannelExternalStreamsList
 } from '@/features/server/voice/hooks';
-import { memo, useMemo } from 'react';
+import { memo, useEffect, useMemo } from 'react';
 import { ControlsBar } from './controls-bar';
 import { ExternalStreamCard } from './external-stream-card';
 import {
@@ -27,6 +28,8 @@ const VoiceChannel = memo(({ channelId }: TChannelProps) => {
   const hideNonVideoParticipants = useHideNonVideoParticipants();
   const hideOwnScreenShare = useHideOwnScreenShare();
   const ownUserId = useOwnUserId();
+
+  useEffect(() => subscribeToVoiceReactions(), [channelId]);
 
   const cards = useMemo(() => {
     const cards: React.ReactNode[] = [];

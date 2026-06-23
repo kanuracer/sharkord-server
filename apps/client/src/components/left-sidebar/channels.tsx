@@ -26,8 +26,7 @@ import {
   ChannelPermission,
   Permission,
   type TChannel,
-  TestId,
-  getTrpcError
+  TestId
 } from '@sharkord/shared';
 import { Hash, Volume2 } from 'lucide-react';
 import { memo, useMemo } from 'react';

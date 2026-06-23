@@ -207,6 +207,13 @@ class VoiceRuntime {
     return map;
   };
 
+  public static destroyAllForTests = async (): Promise<void> => {
+    await Promise.all(
+      Array.from(voiceRuntimes.values()).map((runtime) => runtime.destroy())
+    );
+    voiceRuntimes.clear();
+  };
+
   private getConsumerKey = (remoteId: number, kind: StreamKind) => {
     return `${remoteId}-${kind}`;
   };

@@ -20,7 +20,9 @@ const capabilitiesRoute = protectedProcedure.query(() => ({
     mfaReauthHardening: true,
     oidcLogin: true,
     voiceDeviceHotSwap: true,
-    webRtcAnnouncedAddress: true
+    webRtcAnnouncedAddress: true,
+    voiceReactions: true,
+    voiceTextChatCoupling: true
   }
 }));
 

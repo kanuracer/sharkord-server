@@ -54,6 +54,7 @@ export interface IServerState {
     [parentMessageId: number]: number[];
   };
   voiceMap: TVoiceMap;
+  voiceReactionsMap: Record<number, { emoji: string; expiresAt: number }>;
   externalStreamsMap: TExternalStreamsMap;
   ownVoiceState: TVoiceUserState;
   pinnedCard: TPinnedCard | undefined;
@@ -92,6 +93,7 @@ const initialState: IServerState = {
   typingMap: {},
   threadTypingMap: {},
   voiceMap: {},
+  voiceReactionsMap: {},
   externalStreamsMap: {},
   ownVoiceState: {
     micMuted: false,
@@ -709,6 +711,23 @@ export const serverSlice = createSlice({
         ...state.voiceMap[channelId].users[userId],
         ...newState
       };
+    },
+    setVoiceReaction: (
+      state,
+      action: PayloadAction<{
+        userId: number;
+        emoji?: string;
+        expiresAt?: number;
+      }>
+    ) => {
+      const { userId, emoji, expiresAt } = action.payload;
+
+      if (!emoji || !expiresAt || expiresAt <= Date.now()) {
+        delete state.voiceReactionsMap[userId];
+        return;
+      }
+
+      state.voiceReactionsMap[userId] = { emoji, expiresAt };
     },
     updateOwnVoiceState: (
       state,

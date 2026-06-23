@@ -54,3 +54,11 @@ export const showUserBannersInVoiceSelector = (state: IRootState) =>
 
 export const hideOwnScreenShareSelector = (state: IRootState) =>
   state.server.hideOwnScreenShare;
+
+export const voiceReactionsMapSelector = (state: IRootState) =>
+  state.server.voiceReactionsMap;
+
+export const voiceReactionByUserIdSelector = (
+  state: IRootState,
+  userId: number
+) => state.server.voiceReactionsMap[userId];

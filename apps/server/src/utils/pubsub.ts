@@ -104,6 +104,12 @@ type Events = {
     remoteId: number;
     kind: StreamKind;
   };
+  [ServerEvents.VOICE_REACTION]: {
+    channelId: number;
+    userId: number;
+    emoji: string;
+    expiresAt: number;
+  };
 
   [ServerEvents.PLUGIN_LOG]: TLogEntry;
   [ServerEvents.PLUGIN_COMMANDS_CHANGE]: TCommandsMapByPlugin;

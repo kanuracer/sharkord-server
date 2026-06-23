@@ -7,7 +7,8 @@ import { useIsOwnUser } from '@/features/server/users/hooks';
 import {
   useShowUserBannersInVoice,
   useSpeakingState,
-  useVoice
+  useVoice,
+  useVoiceReaction
 } from '@/features/server/voice/hooks';
 import { getFileUrl } from '@/helpers/get-file-url';
 import { cn } from '@/lib/utils';
@@ -51,6 +52,7 @@ const VoiceUserCard = memo(
     const showUserBanners = useShowUserBannersInVoice();
     const { isActivelySpeaking, speakingEffectClass } =
       useSpeakingState(userId);
+    const voiceReaction = useVoiceReaction(userId);
     const isSimulcastVideoConsumer =
       !isOwnUser && isSimulcastConsumer(userId, StreamKind.VIDEO);
     const showQualityControl =
@@ -119,6 +121,12 @@ const VoiceUserCard = memo(
             className="w-12 h-12 md:w-16 md:h-16 lg:w-24 lg:h-24"
             showStatusBadge={false}
           />
+        )}
+
+        {voiceReaction && (
+          <div className="voiceReactionBadge absolute top-3 right-3 rounded-full bg-background/80 px-3 py-1 text-3xl shadow-xl animate-in zoom-in duration-150" aria-label={`Voice reaction ${voiceReaction.emoji}`}>
+            {voiceReaction.emoji}
+          </div>
         )}
 
         <div className="absolute bottom-0 left-0 right-0 p-2">

@@ -456,7 +456,10 @@ export const useAdminStorage = () => {
       storageSignedUrlsTtlSeconds: STORAGE_DEFAULT_SIGNED_URLS_TTL_SECONDS,
       storageImageOptimizationEnabled: false,
       storageImageOptimizationQuality:
-        STORAGE_DEFAULT_IMAGE_OPTIMIZATION_QUALITY
+        STORAGE_DEFAULT_IMAGE_OPTIMIZATION_QUALITY,
+      retentionCleanupEnabled: false,
+      messageRetentionDays: 0,
+      mediaRetentionDays: 0
     });
   const [diskMetrics, setDiskMetrics] = useState<TDiskMetrics | undefined>(
     undefined
@@ -493,7 +496,10 @@ export const useAdminStorage = () => {
         storageSignedUrlsEnabled: values.storageSignedUrlsEnabled,
         storageSignedUrlsTtlSeconds: values.storageSignedUrlsTtlSeconds,
         storageImageOptimizationEnabled: values.storageImageOptimizationEnabled,
-        storageImageOptimizationQuality: values.storageImageOptimizationQuality
+        storageImageOptimizationQuality: values.storageImageOptimizationQuality,
+        retentionCleanupEnabled: values.retentionCleanupEnabled,
+        messageRetentionDays: values.messageRetentionDays,
+        mediaRetentionDays: values.mediaRetentionDays
       });
       toast.success('Storage settings updated');
     } catch (error) {

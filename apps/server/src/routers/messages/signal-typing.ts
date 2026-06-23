@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { config } from '../../config';
 import { getAffectedOnlineUserIdsForChannel } from '../../db/queries/channels';
 import { assertDmChannel } from '../../db/queries/dms';
+import { assertVoiceTextChatAccess } from '../../helpers/assert-voice-text-chat-access';
 import { protectedProcedure, rateLimitedProcedure } from '../../utils/trpc';
 
 const signalTypingRoute = rateLimitedProcedure(protectedProcedure, {
@@ -17,16 +18,18 @@ const signalTypingRoute = rateLimitedProcedure(protectedProcedure, {
     })
   )
   .mutation(async ({ input, ctx }) => {
-    const [, , , affectedUserIds] = await Promise.all([
+    const affectedUserIds = await getAffectedOnlineUserIdsForChannel(input.channelId, {
+      permission: ChannelPermission.VIEW_CHANNEL
+    });
+
+    await Promise.all([
       ctx.needsPermission(Permission.SEND_MESSAGES),
       ctx.needsChannelPermission(
         input.channelId,
         ChannelPermission.SEND_MESSAGES
       ),
       assertDmChannel(input.channelId, ctx.userId),
-      getAffectedOnlineUserIdsForChannel(input.channelId, {
-        permission: ChannelPermission.VIEW_CHANNEL
-      })
+      assertVoiceTextChatAccess(ctx, input.channelId)
     ]);
 
     ctx.pubsub.publishFor(affectedUserIds, ServerEvents.MESSAGE_TYPING, {

@@ -12,6 +12,7 @@ import { getChannelsReadStatesForUser } from '../../db/queries/channels';
 import { joinMessagesWithRelations } from '../../db/queries/messages';
 import { channelReadStates, channels, messages } from '../../db/schema';
 import { assertChannelAccess } from '../../helpers/assert-channel-access';
+import { assertVoiceTextChatAccess } from '../../helpers/assert-voice-text-chat-access';
 import { invariant } from '../../utils/invariant';
 import { pubsub } from '../../utils/pubsub';
 import { protectedProcedure, rateLimitedProcedure } from '../../utils/trpc';
@@ -31,7 +32,10 @@ const getMessagesRoute = rateLimitedProcedure(protectedProcedure, {
   )
   .meta({ infinite: true })
   .query(async ({ ctx, input }) => {
-    await assertChannelAccess(ctx, input.channelId);
+    await Promise.all([
+      assertChannelAccess(ctx, input.channelId),
+      assertVoiceTextChatAccess(ctx, input.channelId)
+    ]);
 
     const { channelId, cursor, limit, targetMessageId } = input;
 

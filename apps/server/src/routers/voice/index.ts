@@ -14,6 +14,7 @@ import {
   onVoiceAddExternalStreamRoute,
   onVoiceNewProducerRoute,
   onVoiceProducerClosedRoute,
+  onVoiceReactionRoute,
   onVoiceRemoveExternalStreamRoute,
   onVoiceUpdateExternalStreamRoute
 } from './events';
@@ -22,11 +23,13 @@ import { joinVoiceRoute } from './join';
 import { leaveVoiceRoute } from './leave';
 import { moveUserRoute } from './move-user';
 import { produceRoute } from './produce';
+import { reactVoiceRoute } from './react';
 import { setConsumerQualityRoute } from './set-consumer-quality';
 import { updateVoiceStateRoute } from './update-state';
 
 export const voiceRouter = t.router({
   join: joinVoiceRoute,
+  react: reactVoiceRoute,
   leave: leaveVoiceRoute,
   updateState: updateVoiceStateRoute,
   moveUser: moveUserRoute,
@@ -46,6 +49,7 @@ export const voiceRouter = t.router({
   onUpdateState: onUserUpdateVoiceStateRoute,
   onNewProducer: onVoiceNewProducerRoute,
   onProducerClosed: onVoiceProducerClosedRoute,
+  onReaction: onVoiceReactionRoute,
   onAddExternalStream: onVoiceAddExternalStreamRoute,
   onUpdateExternalStream: onVoiceUpdateExternalStreamRoute,
   onRemoveExternalStream: onVoiceRemoveExternalStreamRoute

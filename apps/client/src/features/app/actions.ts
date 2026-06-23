@@ -234,6 +234,21 @@ export const toggleVoiceChatSidebar = (channelId: number) => {
   }
 };
 
+export const retargetOpenVoiceChatSidebar = (channelId: number) => {
+  const state = store.getState();
+  const { isOpen, channelId: voiceChatChannelId } =
+    voiceChatSidebarDataSelector(state);
+
+  if (!isOpen || voiceChatChannelId === channelId) return;
+
+  store.dispatch(appSliceActions.setVoiceChatSidebar({ open: true, channelId }));
+  markChannelAsRead(channelId);
+  setLocalStorageItem(
+    LocalStorageKey.VOICE_CHAT_SIDEBAR_CHANNEL_ID,
+    channelId.toString()
+  );
+};
+
 export const assertVoiceChatClose = (channelId: number) => {
   const state = store.getState();
   const { isOpen, channelId: voiceChatChannelId } =

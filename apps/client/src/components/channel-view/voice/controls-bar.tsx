@@ -1,5 +1,5 @@
 import { useChannelCan } from '@/features/server/hooks';
-import { leaveVoice } from '@/features/server/voice/actions';
+import { leaveVoice, sendVoiceReaction } from '@/features/server/voice/actions';
 import { useOwnVoiceState, useVoice } from '@/features/server/voice/hooks';
 import { cn } from '@/lib/utils';
 import { ChannelPermission } from '@sharkord/shared';
@@ -52,6 +52,20 @@ const ControlsBar = memo(({ channelId }: TControlsBarProps) => {
           'bg-card border-border/50 backdrop-blur-md'
         )}
       >
+        {['👍', '❤️', '😂', '🎉', '😮'].map((emoji) => (
+          <Tooltip key={emoji} content={`React ${emoji}`}>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-10 w-10 rounded-full text-xl"
+              onClick={() => void sendVoiceReaction(emoji)}
+              aria-label={`Voice reaction ${emoji}`}
+            >
+              {emoji}
+            </Button>
+          </Tooltip>
+        ))}
+
         <ControlToggleButton
           enabled={ownVoiceState.micMuted}
           enabledLabel="Unmute"

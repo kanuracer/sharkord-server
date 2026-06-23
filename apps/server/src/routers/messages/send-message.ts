@@ -14,6 +14,7 @@ import { config } from '../../config';
 import { db } from '../../db';
 import { publishMessage, publishReplyCount } from '../../db/publishers';
 import { assertDmChannel, isDirectMessageChannel } from '../../db/queries/dms';
+import { assertVoiceTextChatAccess } from '../../helpers/assert-voice-text-chat-access';
 import { getSettings } from '../../db/queries/server';
 import { messageFiles, messages } from '../../db/schema';
 import { getInvokerCtxFromTrpcCtx } from '../../helpers/get-invoker-ctx-from-trpc-ctx';
@@ -48,7 +49,8 @@ const sendMessageRoute = rateLimitedProcedure(protectedProcedure, {
       ctx.needsChannelPermission(
         input.channelId,
         ChannelPermission.SEND_MESSAGES
-      )
+      ),
+      assertVoiceTextChatAccess(ctx, input.channelId)
     ]);
 
     if (input.parentMessageId) {

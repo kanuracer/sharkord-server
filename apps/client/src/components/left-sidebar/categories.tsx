@@ -36,7 +36,6 @@ import { Protect } from '../protect';
 import { UnreadCount } from '../unread-count';
 import {
   Channels,
-  channelSortableId,
   parseChannelSortableId
 } from './channels';
 import { useCategoryExpanded } from './hooks';
@@ -204,7 +203,11 @@ const Categories = memo(() => {
         ? channels.find((channel) => channel.id === overChannelId)?.categoryId
         : overCategoryId;
 
-      if (activeChannelId === undefined || targetCategoryId === undefined) {
+      if (
+        activeChannelId === undefined ||
+        targetCategoryId === undefined ||
+        targetCategoryId === null
+      ) {
         return;
       }
 

@@ -5,6 +5,7 @@ import { drizzle, type BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 import fs from 'fs/promises';
 import { DATA_PATH } from '../helpers/paths';
 import { createHttpServer } from '../http';
+import { VoiceRuntime } from '../runtimes/voice';
 import { loadMediasoup } from '../utils/mediasoup';
 import { clearRateLimitersForTests } from '../utils/rate-limiters/rate-limiter';
 import { clearAuthenticatedConnectionTokensForTests } from '../utils/ws-auth-sessions';
@@ -60,6 +61,7 @@ beforeAll(async () => {
 beforeEach(async () => {
   clearRateLimitersForTests();
   clearAuthenticatedConnectionTokensForTests();
+  await VoiceRuntime.destroyAllForTests();
 
   if (sqlite) {
     try {
