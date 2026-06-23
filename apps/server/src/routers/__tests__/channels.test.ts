@@ -1,12 +1,14 @@
-import { ChannelPermission, ChannelType } from '@sharkord/shared';
+import { ChannelPermission, ChannelType, UserStatus } from '@sharkord/shared';
 import { describe, expect, test } from 'bun:test';
+import { eq } from 'drizzle-orm';
 import { initTest } from '../../__tests__/helpers';
 import { tdb } from '../../__tests__/setup';
 import { getChannelsReadStatesForUser } from '../../db/queries/channels';
 import {
   channelRolePermissions,
   channelUserPermissions,
-  userRoles
+  userRoles,
+  users
 } from '../../db/schema';
 
 describe('channels router', () => {
@@ -161,6 +163,22 @@ describe('channels router', () => {
     expect(
       members.map((user) => [...user.roleIds].sort((a, b) => a - b))
     ).toEqual([[1], [1, 2], [2], [2]]);
+  });
+
+  test('should include live status data in accessible members', async () => {
+    const { caller } = await initTest(1);
+
+    await tdb
+      .update(users)
+      .set({ statusOverride: UserStatus.IDLE })
+      .where(eq(users.id, 2));
+
+    const members = await caller.channels.getAccessibleMembers({
+      channelId: 1,
+      includeAll: true
+    });
+
+    expect(members.find((user) => user.id === 2)?.status).toBe(UserStatus.IDLE);
   });
 
   test('should expose channel access member filtering capability', async () => {

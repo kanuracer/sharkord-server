@@ -1,6 +1,7 @@
 import {
   ChannelPermission,
   OWNER_ROLE_ID,
+  UserStatus,
   type TJoinedPublicUser,
   type TJoinedRole
 } from '@sharkord/shared';
@@ -79,7 +80,11 @@ const getAccessibleMembersRoute = protectedProcedure
       'identity',
       'password',
       'mfaSecret'
-    ]);
+    ]).map((user) => ({
+      ...user,
+      status:
+        (user.statusOverride as UserStatus | null) ?? ctx.getStatusById(user.id)
+    }));
 
     const visibleUsers = input.includeAll
       ? users

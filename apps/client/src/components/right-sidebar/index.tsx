@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import {
   DELETED_USER_IDENTITY_AND_NAME,
   OWNER_ROLE_ID,
+  UserStatus,
   type TJoinedPublicUser,
   type TJoinedRole
 } from '@sharkord/shared';
@@ -29,10 +30,17 @@ type TUserProps = {
   banned: boolean;
 };
 
-type TMemberGroup = {
+type TMemberRoleGroup = {
   key: string;
   title: string;
   users: TJoinedPublicUser[];
+};
+
+type TMemberStatusGroup = {
+  key: 'online' | 'offline';
+  title: string;
+  usersCount: number;
+  roleGroups: TMemberRoleGroup[];
 };
 
 const roleSortRank = (role: TJoinedRole) => {
@@ -41,6 +49,11 @@ const roleSortRank = (role: TJoinedRole) => {
   if (role.isDefault) return 20;
   if (role.isPersistent) return 30;
   return 40;
+};
+
+const isOnlineMember = (user: TJoinedPublicUser) => {
+  const status = user.status ?? UserStatus.OFFLINE;
+  return status === UserStatus.ONLINE || status === UserStatus.IDLE;
 };
 
 const highestSortableRole = (
@@ -87,9 +100,9 @@ const groupUsersByRole = (
   users: TJoinedPublicUser[],
   roles: TJoinedRole[],
   fallbackTitle: string
-): TMemberGroup[] => {
+): TMemberRoleGroup[] => {
   const rolesById = new Map(roles.map((role) => [role.id, role]));
-  const groups = new Map<string, TMemberGroup>();
+  const groups = new Map<string, TMemberRoleGroup>();
 
   for (const user of sortUsersByRole(users, roles)) {
     const role = highestSortableRole(user, rolesById);
@@ -104,6 +117,37 @@ const groupUsersByRole = (
   }
 
   return [...groups.values()];
+};
+
+const groupUsersByStatusAndRole = (
+  users: TJoinedPublicUser[],
+  roles: TJoinedRole[],
+  fallbackTitle: string,
+  onlineTitle: string,
+  offlineTitle: string
+): TMemberStatusGroup[] => {
+  const onlineUsers = users.filter(isOnlineMember);
+  const offlineUsers = users.filter((user) => !isOnlineMember(user));
+
+  return [
+    {
+      key: 'online' as const,
+      title: onlineTitle,
+      users: onlineUsers
+    },
+    {
+      key: 'offline' as const,
+      title: offlineTitle,
+      users: offlineUsers
+    }
+  ]
+    .filter((group) => group.users.length > 0)
+    .map((group) => ({
+      key: group.key,
+      title: group.title,
+      usersCount: group.users.length,
+      roleGroups: groupUsersByRole(group.users, roles, fallbackTitle)
+    }));
 };
 
 const User = memo(({ userId, name, banned }: TUserProps) => {
@@ -137,11 +181,13 @@ const RightSidebar = memo(
     const selectedChannelId = useSelector((state: IRootState) =>
       selectedChannelIdSelector(state)
     );
-    const [channelUsers, setChannelUsers] = useState<typeof users | null>(null);
+    const [channelUserIds, setChannelUserIds] = useState<Set<number> | null>(
+      null
+    );
 
     useEffect(() => {
       let cancelled = false;
-      setChannelUsers(null);
+      setChannelUserIds(null);
       if (!selectedChannelId) return undefined;
 
       getTRPCClient()
@@ -150,10 +196,12 @@ const RightSidebar = memo(
           includeAll: false
         })
         .then((rows) => {
-          if (!cancelled) setChannelUsers(rows as typeof users);
+          if (!cancelled) {
+            setChannelUserIds(new Set(rows.map((user) => user.id)));
+          }
         })
         .catch(() => {
-          if (!cancelled) setChannelUsers(null);
+          if (!cancelled) setChannelUserIds(null);
         });
 
       return () => {
@@ -161,19 +209,23 @@ const RightSidebar = memo(
       };
     }, [selectedChannelId, users.length]);
 
-    const displayUsers = channelUsers ?? users;
+    const displayUsers = channelUserIds
+      ? users.filter((user) => channelUserIds.has(user.id))
+      : users;
 
-    const { memberGroups, usersCount, hiddenUsersCount } = useMemo(() => {
+    const { memberStatusGroups, usersCount, hiddenUsersCount } = useMemo(() => {
       const filtered = displayUsers.filter(
         (user) => user.name !== DELETED_USER_IDENTITY_AND_NAME
       );
       const visible = filtered.slice(0, MAX_USERS_TO_SHOW);
 
       return {
-        memberGroups: groupUsersByRole(
+        memberStatusGroups: groupUsersByStatusAndRole(
           visible,
           roles,
-          t('membersFallbackGroup')
+          t('membersFallbackGroup'),
+          t('onlineMembersGroup'),
+          t('offlineMembersGroup')
         ),
         usersCount: filtered.length,
         hiddenUsersCount: Math.max(filtered.length - MAX_USERS_TO_SHOW, 0)
@@ -196,20 +248,29 @@ const RightSidebar = memo(
           </h3>
         </div>
         <div className="flex-1 overflow-y-auto p-2">
-          <div className="space-y-3">
-            {memberGroups.map((group) => (
-              <div key={group.key} className="space-y-1">
+          <div className="space-y-4">
+            {memberStatusGroups.map((statusGroup) => (
+              <div key={statusGroup.key} className="space-y-2">
                 <div className="px-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  {group.title} — {group.users.length}
+                  {statusGroup.title} — {statusGroup.usersCount}
                 </div>
-                {group.users.map((user) => (
-                  <User
-                    key={user.id}
-                    userId={user.id}
-                    name={user.name}
-                    banned={user.banned}
-                  />
-                ))}
+                <div className="space-y-3">
+                  {statusGroup.roleGroups.map((group) => (
+                    <div key={group.key} className="space-y-1">
+                      <div className="px-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/80">
+                        {group.title} — {group.users.length}
+                      </div>
+                      {group.users.map((user) => (
+                        <User
+                          key={user.id}
+                          userId={user.id}
+                          name={user.name}
+                          banned={user.banned}
+                        />
+                      ))}
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
             {hiddenUsersCount > 0 && (
