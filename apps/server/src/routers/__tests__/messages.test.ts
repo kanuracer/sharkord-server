@@ -510,6 +510,30 @@ describe('messages router', () => {
     ).rejects.toThrow('Search is disabled on this server');
   });
 
+
+  test('should allow separate DM pin permission without granting public channel pinning', async () => {
+    const { caller } = await initTest(3);
+    const now = Date.now();
+
+    await tdb.insert(rolePermissions).values({
+      roleId: 2,
+      permission: Permission.PIN_DIRECT_MESSAGES,
+      createdAt: now
+    });
+
+    await expect(caller.messages.togglePin({ messageId: 2 })).resolves.toBeUndefined();
+
+    const publicMessageId = await caller.messages.send({
+      channelId: 1,
+      content: 'Public pin attempt',
+      files: []
+    });
+
+    await expect(
+      caller.messages.togglePin({ messageId: publicMessageId })
+    ).rejects.toThrow('Insufficient permissions');
+  });
+
   test('should get pinned messages from channel', async () => {
     const { caller } = await initTest();
 

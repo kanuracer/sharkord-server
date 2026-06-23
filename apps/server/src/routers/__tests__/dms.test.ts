@@ -249,7 +249,9 @@ describe('dms router', () => {
         customEmojiReactionIds: true,
         voiceSoundboard: true,
         voiceMediaRecovery: true,
-        channelLinks: true
+        channelLinks: true,
+        directMessagePinning: true,
+        channelAccessMembers: true
       }
     });
   });

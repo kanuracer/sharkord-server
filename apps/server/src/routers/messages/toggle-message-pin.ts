@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../../db';
 import { publishMessage } from '../../db/publishers';
+import { isDirectMessageChannel } from '../../db/queries/dms';
 import { messages } from '../../db/schema';
 import { assertChannelAccess } from '../../helpers/assert-channel-access';
 import { enqueueActivityLog } from '../../queues/activity-log';
@@ -16,8 +17,6 @@ const toggleMessagePinRoute = protectedProcedure
     })
   )
   .mutation(async ({ input, ctx }) => {
-    await ctx.needsPermission(Permission.PIN_MESSAGES);
-
     const message = await db
       .select()
       .from(messages)
@@ -30,6 +29,11 @@ const toggleMessagePinRoute = protectedProcedure
     });
 
     await assertChannelAccess(ctx, message.channelId);
+
+    const isDmChannel = await isDirectMessageChannel(message.channelId);
+    await ctx.needsPermission(
+      isDmChannel ? Permission.PIN_DIRECT_MESSAGES : Permission.PIN_MESSAGES
+    );
 
     invariant(!message.parentMessageId, {
       code: 'BAD_REQUEST',

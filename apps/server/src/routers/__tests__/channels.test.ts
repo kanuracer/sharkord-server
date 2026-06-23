@@ -1,6 +1,8 @@
 import { ChannelPermission, ChannelType } from '@sharkord/shared';
 import { describe, expect, test } from 'bun:test';
 import { initTest } from '../../__tests__/helpers';
+import { tdb } from '../../__tests__/setup';
+import { channelRolePermissions, channelUserPermissions } from '../../db/schema';
 import { getChannelsReadStatesForUser } from '../../db/queries/channels';
 
 describe('channels router', () => {
@@ -91,6 +93,48 @@ describe('channels router', () => {
         roleId: 1
       })
     ).rejects.toThrow('Insufficient permissions');
+  });
+
+
+  test('should list only users that can access a private channel', async () => {
+    const { caller } = await initTest(1);
+    const now = Date.now();
+
+    await caller.channels.update({
+      channelId: 1,
+      name: 'Private General',
+      topic: 'Private text channel',
+      private: true
+    });
+
+    await tdb.insert(channelRolePermissions).values({
+      channelId: 1,
+      roleId: 2,
+      permission: ChannelPermission.VIEW_CHANNEL,
+      allow: true,
+      createdAt: now
+    });
+    await tdb.insert(channelUserPermissions).values({
+      channelId: 1,
+      userId: 4,
+      permission: ChannelPermission.VIEW_CHANNEL,
+      allow: false,
+      createdAt: now
+    });
+
+    const accessMembers = await caller.channels.getAccessibleMembers({ channelId: 1 });
+    const allMembers = await caller.channels.getAccessibleMembers({ channelId: 1, includeAll: true });
+
+    expect(accessMembers.map((user) => user.id).sort()).toEqual([1, 2, 3]);
+    expect(allMembers.map((user) => user.id).sort()).toEqual([1, 2, 3, 4]);
+    expect(accessMembers.every((user) => user.password === '')).toBe(true);
+  });
+
+  test('should expose channel access member filtering capability', async () => {
+    const { caller } = await initTest(1);
+    const caps = await caller.desktop.capabilities();
+    expect(caps.capabilities.channelAccessMembers).toBe(true);
+    expect(caps.capabilities.directMessagePinning).toBe(true);
   });
 
   test('should create a new text channel', async () => {

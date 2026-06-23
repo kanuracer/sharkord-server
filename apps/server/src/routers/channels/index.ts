@@ -10,6 +10,7 @@ import {
   onChannelReadStatesUpdateRoute,
   onChannelUpdateRoute
 } from './events';
+import { getAccessibleMembersRoute } from './get-accessible-members';
 import { getChannelRoute } from './get-channel';
 import { getPermissionsRoute } from './get-permissions';
 import { markAsReadRoute } from './mark-as-read';
@@ -23,6 +24,7 @@ export const channelsRouter = t.router({
   update: updateChannelRoute,
   delete: deleteChannelRoute,
   get: getChannelRoute,
+  getAccessibleMembers: getAccessibleMembersRoute,
   updatePermissions: updatePermissionsRoute,
   getPermissions: getPermissionsRoute,
   deletePermissions: deletePermissionsRoute,

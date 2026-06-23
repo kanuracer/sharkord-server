@@ -1,11 +1,15 @@
 import { ResizableSidebar } from '@/components/resizable-sidebar';
 import { UserAvatar } from '@/components/user-avatar';
+import { selectedChannelIdSelector } from '@/features/server/channels/selectors';
 import { useUsers } from '@/features/server/users/hooks';
+import type { IRootState } from '@/features/store';
 import { LocalStorageKey } from '@/helpers/storage';
+import { getTRPCClient } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
 import { DELETED_USER_IDENTITY_AND_NAME } from '@sharkord/shared';
-import { memo, useMemo } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSelector } from 'react-redux';
 import { UserPopover } from '../user-popover';
 
 const MAX_USERS_TO_SHOW = 100;
@@ -46,9 +50,24 @@ const RightSidebar = memo(
   ({ className, isOpen = true }: TRightSidebarProps) => {
     const { t } = useTranslation('sidebar');
     const users = useUsers();
+    const selectedChannelId = useSelector((state: IRootState) => selectedChannelIdSelector(state));
+    const [channelAccessOnly, setChannelAccessOnly] = useState(true);
+    const [channelUsers, setChannelUsers] = useState<typeof users | null>(null);
+
+    useEffect(() => {
+      let cancelled = false;
+      setChannelUsers(null);
+      if (!selectedChannelId || !channelAccessOnly) return undefined;
+      getTRPCClient().channels.getAccessibleMembers.query({ channelId: selectedChannelId, includeAll: false })
+        .then((rows) => { if (!cancelled) setChannelUsers(rows as typeof users); })
+        .catch(() => { if (!cancelled) setChannelUsers(null); });
+      return () => { cancelled = true; };
+    }, [selectedChannelId, channelAccessOnly, users.length]);
+
+    const displayUsers = channelAccessOnly && channelUsers ? channelUsers : users;
 
     const { usersToShow, usersCount } = useMemo(() => {
-      const filtered = users.filter(
+      const filtered = displayUsers.filter(
         (user) => user.name !== DELETED_USER_IDENTITY_AND_NAME
       );
 
@@ -56,9 +75,9 @@ const RightSidebar = memo(
         usersToShow: filtered.slice(0, MAX_USERS_TO_SHOW),
         usersCount: filtered.length
       };
-    }, [users]);
+    }, [displayUsers]);
 
-    const hasHiddenUsers = users.length > MAX_USERS_TO_SHOW;
+    const hasHiddenUsers = displayUsers.length > MAX_USERS_TO_SHOW;
 
     return (
       <ResizableSidebar
@@ -70,10 +89,14 @@ const RightSidebar = memo(
         isOpen={isOpen}
         className={cn('h-full', className)}
       >
-        <div className="flex h-12 items-center border-b border-border px-4">
+        <div className="flex h-12 items-center justify-between gap-2 border-b border-border px-4">
           <h3 className="text-sm font-semibold text-foreground">
             {t('membersHeader', { count: usersCount })}
           </h3>
+          <label className="flex items-center gap-1 text-xs text-muted-foreground">
+            <input type="checkbox" checked={channelAccessOnly} onChange={(event) => setChannelAccessOnly(event.currentTarget.checked)} />
+            {t('channelAccessOnly')}
+          </label>
         </div>
         <div className="flex-1 overflow-y-auto p-2">
           <div className="space-y-1">
@@ -87,7 +110,7 @@ const RightSidebar = memo(
             ))}
             {hasHiddenUsers && (
               <div className="text-sm text-muted-foreground px-2 py-1.5">
-                +{users.length - MAX_USERS_TO_SHOW} more...
+                +{displayUsers.length - MAX_USERS_TO_SHOW} more...
               </div>
             )}
           </div>

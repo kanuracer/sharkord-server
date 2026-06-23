@@ -27,7 +27,9 @@ const capabilitiesRoute = protectedProcedure.query(() => ({
     customEmojiReactionIds: true,
     voiceSoundboard: true,
     voiceMediaRecovery: true,
-    channelLinks: true
+    channelLinks: true,
+    directMessagePinning: true,
+    channelAccessMembers: true
   }
 }));
 
