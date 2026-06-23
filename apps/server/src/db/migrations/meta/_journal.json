@@ -183,6 +183,13 @@
       "when": 1782262800000,
       "tag": "0025_custom_user_status",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "6",
+      "when": 1782268200000,
+      "tag": "0026_add_role_weight",
+      "breakpoints": true
     }
   ]
 }

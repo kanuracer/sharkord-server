@@ -133,6 +133,7 @@ const seedDatabase = async () => {
       isPersistent: true,
       storageQuotaOverrideEnabled: false,
       storageSpaceQuota: 0,
+      weight: 0,
       createdAt: firstStart
     },
     {
@@ -142,6 +143,7 @@ const seedDatabase = async () => {
       isDefault: true,
       storageQuotaOverrideEnabled: false,
       storageSpaceQuota: 0,
+      weight: 100,
       createdAt: firstStart
     }
   ];

@@ -438,5 +438,7 @@
   "mfaDisableDesc": "Enter your current password and authenticator code. Disabling 2FA also revokes remembered devices.",
   "mfaDisableButton": "Disable 2FA",
   "mfaDisabled": "Two-factor authentication disabled",
-  "mfaQrCodeAlt": "QR kód pro nastavení autentizační aplikace"
+  "mfaQrCodeAlt": "QR kód pro nastavení autentizační aplikace",
+  "roleWeightLabel": "Role weight",
+  "roleWeightDesc": "Lower numbers appear higher. 0 is highest priority; bigger numbers sort lower. Users with multiple roles use their highest-priority role."
 }

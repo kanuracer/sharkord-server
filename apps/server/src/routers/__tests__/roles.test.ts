@@ -84,6 +84,7 @@ describe('roles router', () => {
     expect(newRole!.isPersistent).toBe(false);
     expect(newRole!.storageQuotaOverrideEnabled).toBe(false);
     expect(newRole!.storageSpaceQuota).toBe(0);
+    expect(newRole!.weight).toBe(100);
     expect(newRole!.mentionable).toBe(false);
   });
 
@@ -98,6 +99,7 @@ describe('roles router', () => {
       color: '#ff5500',
       permissions: [Permission.SEND_MESSAGES, Permission.UPLOAD_FILES],
       mentionable: true,
+      weight: 42,
       storageQuotaOverrideEnabled: false,
       storageSpaceQuota: 0
     });
@@ -113,6 +115,7 @@ describe('roles router', () => {
     expect(updatedRole!.permissions.length).toBe(2);
     expect(updatedRole!.storageQuotaOverrideEnabled).toBe(false);
     expect(updatedRole!.storageSpaceQuota).toBe(0);
+    expect(updatedRole!.weight).toBe(42);
     expect(updatedRole!.mentionable).toBe(true);
   });
 

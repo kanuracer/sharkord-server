@@ -438,5 +438,7 @@
   "mfaDisableDesc": "Enter your current password and authenticator code. Disabling 2FA also revokes remembered devices.",
   "mfaDisableButton": "Disable 2FA",
   "mfaDisabled": "Two-factor authentication disabled",
-  "mfaQrCodeAlt": "用于设置身份验证器应用的二维码"
+  "mfaQrCodeAlt": "用于设置身份验证器应用的二维码",
+  "roleWeightLabel": "Role weight",
+  "roleWeightDesc": "Lower numbers appear higher. 0 is highest priority; bigger numbers sort lower. Users with multiple roles use their highest-priority role."
 }

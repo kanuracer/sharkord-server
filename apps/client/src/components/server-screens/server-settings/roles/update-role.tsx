@@ -40,12 +40,13 @@ type TUpdateRoleProps = {
 const UpdateRole = memo(
   ({ selectedRole, setSelectedRoleId, refetch }: TUpdateRoleProps) => {
     const { t } = useTranslation('settings');
-    const { setTrpcErrors, r, onChange, values } = useForm({
+    const { setTrpcErrors, r, onChange, values, setValues } = useForm({
       name: selectedRole.name,
       color: selectedRole.color,
       permissions: selectedRole.permissions,
       storageQuotaOverrideEnabled: selectedRole.storageQuotaOverrideEnabled,
-      storageSpaceQuota: selectedRole.storageSpaceQuota
+      storageSpaceQuota: selectedRole.storageSpaceQuota,
+      weight: selectedRole.weight ?? (selectedRole.id === OWNER_ROLE_ID ? 0 : 100)
     });
 
     const isOwnerRole = selectedRole.id === OWNER_ROLE_ID;
@@ -166,6 +167,26 @@ const UpdateRole = memo(
                 <Input className="h-10 w-20" {...r('color', 'color')} />
                 <Input className="flex-1" {...r('color')} />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="role-weight">{t('roleWeightLabel')}</Label>
+              <Input
+                id="role-weight"
+                type="number"
+                min={0}
+                step={1}
+                value={values.weight ?? 100}
+                onChange={(e) =>
+                  setValues({
+                    ...values,
+                    weight: Math.max(0, Math.round(Number(e.target.value) || 0))
+                  })
+                }
+              />
+              <p className="text-sm text-muted-foreground">
+                {t('roleWeightDesc')}
+              </p>
             </div>
           </div>
 

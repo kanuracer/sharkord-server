@@ -45,10 +45,9 @@ type TMemberStatusGroup = {
 
 const roleSortRank = (role: TJoinedRole) => {
   if (role.id === OWNER_ROLE_ID) return 0;
-  if (!role.isDefault && role.isPersistent) return 10;
-  if (role.isDefault) return 20;
-  if (role.isPersistent) return 30;
-  return 40;
+  const weight = Number(role.weight);
+  if (Number.isFinite(weight) && weight >= 0) return weight;
+  return role.isDefault ? 100 : 100;
 };
 
 const isOnlineMember = (user: TJoinedPublicUser) => {

@@ -455,5 +455,7 @@
   "appPasswordNone": "No app passwords for this account.",
   "appPasswordRevokeConfirmTitle": "Revoke app password?",
   "appPasswordRevokeConfirmDesc": "That desktop client will be disconnected and must sign in again with password and 2FA.",
-  "appPasswordRevokeError": "Could not revoke app password"
+  "appPasswordRevokeError": "Could not revoke app password",
+  "roleWeightLabel": "Role weight",
+  "roleWeightDesc": "Lower numbers appear higher. 0 is highest priority; bigger numbers sort lower. Users with multiple roles use their highest-priority role."
 }

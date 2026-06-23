@@ -133,6 +133,7 @@ const roles = sqliteTable(
       .notNull()
       .default(false),
     storageSpaceQuota: integer('storage_space_quota').notNull().default(0),
+    weight: integer('weight').notNull().default(100),
     mentionable: integer('mentionable', { mode: 'boolean' })
       .notNull()
       .default(false),
@@ -141,7 +142,8 @@ const roles = sqliteTable(
   },
   (t) => [
     index('roles_is_default_idx').on(t.isDefault),
-    index('roles_is_persistent_idx').on(t.isPersistent)
+    index('roles_is_persistent_idx').on(t.isPersistent),
+    index('roles_weight_idx').on(t.weight)
   ]
 );
 
