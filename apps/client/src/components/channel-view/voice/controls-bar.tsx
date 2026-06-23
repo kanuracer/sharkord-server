@@ -1,3 +1,8 @@
+import { useRecentEmojis } from '@/components/emoji-picker/use-recent-emojis';
+import {
+  customEmojiReactionValue,
+  shouldUseFallbackImage
+} from '@/components/tiptap-input/helpers';
 import { useChannelCan } from '@/features/server/hooks';
 import { leaveVoice, sendVoiceReaction } from '@/features/server/voice/actions';
 import { useOwnVoiceState, useVoice } from '@/features/server/voice/hooks';
@@ -27,6 +32,11 @@ const ControlsBar = memo(({ channelId }: TControlsBarProps) => {
   const ownVoiceState = useOwnVoiceState();
   const channelCan = useChannelCan(channelId);
   const isVisible = useControlsBarVisibility();
+  const { recentEmojis } = useRecentEmojis();
+  const recentVoiceReactionEmojis = useMemo(
+    () => recentEmojis.filter((emoji) => emoji.customId).slice(0, 4),
+    [recentEmojis]
+  );
 
   const permissions = useMemo(
     () => ({
@@ -65,6 +75,33 @@ const ControlsBar = memo(({ channelId }: TControlsBarProps) => {
             </Button>
           </Tooltip>
         ))}
+
+        {recentVoiceReactionEmojis.map((emoji) => {
+          const reactionValue = customEmojiReactionValue(emoji);
+          const useImage = shouldUseFallbackImage(emoji);
+
+          return (
+            <Tooltip key={reactionValue} content={`React :${emoji.name}:`}>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-10 w-10 rounded-full text-xl"
+                onClick={() => void sendVoiceReaction(reactionValue)}
+                aria-label={`Voice reaction ${emoji.name}`}
+              >
+                {emoji.fallbackImage && useImage ? (
+                  <img
+                    src={emoji.fallbackImage}
+                    alt={`:${emoji.name}:`}
+                    className="h-6 w-6 object-contain"
+                  />
+                ) : (
+                  (emoji.emoji ?? `:${emoji.name}:`)
+                )}
+              </Button>
+            </Tooltip>
+          );
+        })}
 
         <ControlToggleButton
           enabled={ownVoiceState.micMuted}

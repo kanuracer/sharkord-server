@@ -1,4 +1,5 @@
 export * from './command-parser';
+export * from './custom-emoji-reactions';
 export * from './extract-urls';
 export * from './get-error-message';
 export * from './get-mediasoup-kind';

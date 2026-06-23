@@ -2,6 +2,7 @@ import { EmojiPicker } from '@/components/emoji-picker';
 import { useRecentEmojis } from '@/components/emoji-picker/use-recent-emojis';
 import { Protect } from '@/components/protect';
 import {
+  customEmojiReactionValue,
   shouldUseFallbackImage,
   type TEmojiItem
 } from '@/components/tiptap-input/helpers';
@@ -88,7 +89,7 @@ const MessageActions = memo(
         try {
           await trpc.messages.toggleReaction.mutate({
             messageId,
-            emoji: emoji.shortcodes[0]
+            emoji: customEmojiReactionValue(emoji)
           });
         } catch (error) {
           toast.error(t('failedAddReaction'));

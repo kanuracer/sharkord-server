@@ -20,7 +20,8 @@ const toTEmojiItem = (emoji: EmojiItem): TEmojiItem => ({
   name: emoji.name,
   shortcodes: emoji.shortcodes,
   fallbackImage: emoji.fallbackImage,
-  emoji: emoji.emoji
+  emoji: emoji.emoji,
+  customId: (emoji as EmojiItem & { customId?: number }).customId
 });
 
 const processEmojis = () => {

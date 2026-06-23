@@ -1,4 +1,7 @@
-import { isTextPresentation } from '@/components/tiptap-input/helpers';
+import {
+  customEmojiReactionName,
+  isTextPresentation
+} from '@/components/tiptap-input/helpers';
 import { useOwnUserId, useUsernames } from '@/features/server/users/hooks';
 import { getFileUrl } from '@/helpers/get-file-url';
 import { getTRPCClient } from '@/lib/trpc';
@@ -47,21 +50,24 @@ type TEmojiProps = {
 
 const Emoji = memo(
   ({ emoji, file, className, nativeEmojiClassName }: TEmojiProps) => {
+    const emojiName = useMemo(() => customEmojiReactionName(emoji), [emoji]);
     const gitHubEmoji = useMemo(
       () =>
-        gitHubEmojis.find(
-          (e) => e.name === emoji || e.shortcodes.includes(emoji)
-        ),
-      [emoji]
+        !file
+          ? gitHubEmojis.find(
+              (e) => e.name === emojiName || e.shortcodes.includes(emojiName)
+            )
+          : undefined,
+      [emojiName, file]
     );
 
     const onError = useCallback(
       (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
         const target = e.target as HTMLImageElement;
 
-        target.outerHTML = `<span class="text-xs text-muted-foreground">:${emoji}:</span>`;
+        target.outerHTML = `<span class="text-xs text-muted-foreground">:${emojiName}:</span>`;
       },
-      [emoji]
+      [emojiName]
     );
 
     const imgSrc = useMemo(
@@ -80,7 +86,7 @@ const Emoji = memo(
     return (
       <img
         src={imgSrc}
-        alt={`:${emoji}:`}
+        alt={`:${emojiName}:`}
         className={cn('w-5 h-5 object-contain', className)}
         onError={onError}
       />
@@ -119,7 +125,7 @@ const Reaction = memo(
       <Tooltip
         content={
           <TooltipPreview
-            emojiName={emoji}
+            emojiName={customEmojiReactionName(emoji)}
             reacters={tooltipContent}
             emojiSlot={
               <Emoji

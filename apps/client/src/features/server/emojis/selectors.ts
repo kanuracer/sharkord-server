@@ -11,6 +11,7 @@ export const customEmojisSelector = createSelector(
     const items: EmojiItem[] = emojis.map((emoji) => ({
       name: emoji.name,
       shortcodes: [emoji.name],
+      customId: emoji.id,
       tags: ['custom'],
       group: 'Custom',
       fallbackImage: getFileUrl(emoji.file)

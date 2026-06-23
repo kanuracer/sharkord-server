@@ -1,5 +1,5 @@
-import { retargetOpenVoiceChatSidebar } from '@/features/app/actions';
 import type { TPinnedCard } from '@/components/channel-view/voice/hooks/use-pin-card-controller';
+import { retargetOpenVoiceChatSidebar } from '@/features/app/actions';
 import { store } from '@/features/store';
 import { logVoice } from '@/helpers/browser-logger';
 import {
@@ -243,14 +243,19 @@ export const subscribeToVoiceReactions = (): (() => void) => {
   const timers = new Map<number, () => void>();
 
   const subscription = client.voice.onReaction.subscribe(undefined, {
-    onData: ({ userId, emoji, expiresAt }) => {
+    onData: ({ userId, emoji, file, expiresAt }) => {
       timers.get(userId)?.();
-      store.dispatch(serverSliceActions.setVoiceReaction({ userId, emoji, expiresAt }));
+      store.dispatch(
+        serverSliceActions.setVoiceReaction({ userId, emoji, file, expiresAt })
+      );
 
-      const timeout = setTimeout(() => {
-        store.dispatch(serverSliceActions.setVoiceReaction({ userId }));
-        timers.delete(userId);
-      }, Math.max(0, expiresAt - Date.now()));
+      const timeout = setTimeout(
+        () => {
+          store.dispatch(serverSliceActions.setVoiceReaction({ userId }));
+          timers.delete(userId);
+        },
+        Math.max(0, expiresAt - Date.now())
+      );
 
       timers.set(userId, () => clearTimeout(timeout));
     },

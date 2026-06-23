@@ -1,10 +1,13 @@
-import { Permission } from '@sharkord/shared';
+import { parseCustomEmojiReactionValue, Permission } from '@sharkord/shared';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { config } from '../../config';
 import { db } from '../../db';
 import { publishMessage } from '../../db/publishers';
-import { getEmojiFileIdByEmojiName } from '../../db/queries/emojis';
+import {
+  getEmojiById,
+  getEmojiFileIdByEmojiName
+} from '../../db/queries/emojis';
 import { getReaction } from '../../db/queries/messages';
 import { messageReactions, messages } from '../../db/schema';
 import { assertChannelAccess } from '../../helpers/assert-channel-access';
@@ -45,7 +48,19 @@ const toggleMessageReactionRoute = rateLimitedProcedure(protectedProcedure, {
     );
 
     if (!reaction) {
-      const emojiFileId = await getEmojiFileIdByEmojiName(input.emoji);
+      const customEmoji = parseCustomEmojiReactionValue(input.emoji);
+      let emojiFileId: number | null = null;
+
+      if (customEmoji) {
+        const emoji = await getEmojiById(customEmoji.id);
+        invariant(emoji && emoji.name === customEmoji.name, {
+          code: 'BAD_REQUEST',
+          message: 'Custom emoji not found.'
+        });
+        emojiFileId = emoji.fileId;
+      } else {
+        emojiFileId = await getEmojiFileIdByEmojiName(input.emoji);
+      }
 
       await db.insert(messageReactions).values({
         messageId: input.messageId,

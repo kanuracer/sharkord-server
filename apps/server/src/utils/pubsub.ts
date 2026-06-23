@@ -6,6 +6,7 @@ import type {
   TChannelUserPermissionsMap,
   TCommandsMapByPlugin,
   TExternalStream,
+  TFile,
   TJoinedEmoji,
   TJoinedMessage,
   TJoinedPublicUser,
@@ -108,6 +109,7 @@ type Events = {
     channelId: number;
     userId: number;
     emoji: string;
+    file?: TFile | null;
     expiresAt: number;
   };
 

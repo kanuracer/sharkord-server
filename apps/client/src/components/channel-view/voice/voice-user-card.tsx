@@ -1,4 +1,5 @@
 import { useDevices } from '@/components/devices-provider/hooks/use-devices';
+import { customEmojiReactionName } from '@/components/tiptap-input/helpers';
 import { UserAvatar } from '@/components/user-avatar';
 import { useStreamVolumeControl } from '@/components/voice-provider/hooks/use-stream-volume-control';
 import { useWebRtcSimulcastEnabled } from '@/features/server/hooks';
@@ -124,8 +125,19 @@ const VoiceUserCard = memo(
         )}
 
         {voiceReaction && (
-          <div className="voiceReactionBadge absolute top-3 right-3 rounded-full bg-background/80 px-3 py-1 text-3xl shadow-xl animate-in zoom-in duration-150" aria-label={`Voice reaction ${voiceReaction.emoji}`}>
-            {voiceReaction.emoji}
+          <div
+            className="voiceReactionBadge absolute top-3 right-3 rounded-full bg-background/80 px-3 py-1 text-3xl shadow-xl animate-in zoom-in duration-150"
+            aria-label={`Voice reaction ${customEmojiReactionName(voiceReaction.emoji)}`}
+          >
+            {voiceReaction.file ? (
+              <img
+                src={getFileUrl(voiceReaction.file)}
+                alt={`:${customEmojiReactionName(voiceReaction.emoji)}:`}
+                className="h-9 w-9 object-contain"
+              />
+            ) : (
+              voiceReaction.emoji
+            )}
           </div>
         )}
 

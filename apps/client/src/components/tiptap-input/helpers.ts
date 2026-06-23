@@ -1,8 +1,14 @@
+import {
+  customEmojiReactionName,
+  customEmojiReactionValue
+} from '@sharkord/shared';
+
 type TEmojiItem = {
   name: string;
   shortcodes: string[];
   fallbackImage?: string;
   emoji?: string;
+  customId?: number;
 };
 
 // checks if the emoji is likely to be rendered as a text presentation emoji, which often look worse and less consistent across platforms than image presentation emojis
@@ -27,7 +33,20 @@ const shouldForceEmojiFallbackImages = (userAgent?: string): boolean =>
   /firefox|librewolf/i.test(getUserAgent(userAgent));
 
 // checks if the emoji should use the fallback image (if available) instead of the native emoji character
-const shouldUseFallbackImage = (emoji: TEmojiItem, userAgent?: string): boolean =>
-  !!emoji.fallbackImage && (shouldForceEmojiFallbackImages(userAgent) || !emoji.emoji || isTextPresentation(emoji.emoji));
+const shouldUseFallbackImage = (
+  emoji: TEmojiItem,
+  userAgent?: string
+): boolean =>
+  !!emoji.fallbackImage &&
+  (shouldForceEmojiFallbackImages(userAgent) ||
+    !emoji.emoji ||
+    isTextPresentation(emoji.emoji));
 
-export { isTextPresentation, shouldForceEmojiFallbackImages, shouldUseFallbackImage, type TEmojiItem };
+export {
+  customEmojiReactionName,
+  customEmojiReactionValue,
+  isTextPresentation,
+  shouldForceEmojiFallbackImages,
+  shouldUseFallbackImage,
+  type TEmojiItem
+};

@@ -244,7 +244,8 @@ describe('dms router', () => {
         voiceDeviceHotSwap: true,
         webRtcAnnouncedAddress: true,
         voiceReactions: true,
-        voiceTextChatCoupling: true
+        voiceTextChatCoupling: true,
+        customEmojiReactionIds: true
       }
     });
   });

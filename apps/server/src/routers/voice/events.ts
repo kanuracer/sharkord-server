@@ -1,4 +1,4 @@
-import { ServerEvents, type StreamKind } from '@sharkord/shared';
+import { ServerEvents, type StreamKind, type TFile } from '@sharkord/shared';
 import { observable } from '@trpc/server/observable';
 import { VoiceRuntime } from '../../runtimes/voice';
 import { protectedProcedure } from '../../utils/trpc';
@@ -84,20 +84,26 @@ const onVoiceProducerClosedRoute = protectedProcedure.subscription(
   }
 );
 
-const onVoiceReactionRoute = protectedProcedure.subscription(async ({ ctx }) => {
-  const runtime = VoiceRuntime.findRuntimeByUserId(ctx.userId);
+const onVoiceReactionRoute = protectedProcedure.subscription(
+  async ({ ctx }) => {
+    const runtime = VoiceRuntime.findRuntimeByUserId(ctx.userId);
 
-  if (!runtime) {
-    return observable<{
-      channelId: number;
-      userId: number;
-      emoji: string;
-      expiresAt: number;
-    }>(() => () => {});
+    if (!runtime) {
+      return observable<{
+        channelId: number;
+        userId: number;
+        emoji: string;
+        file?: TFile | null;
+        expiresAt: number;
+      }>(() => () => {});
+    }
+
+    return ctx.pubsub.subscribeForChannel(
+      runtime.id,
+      ServerEvents.VOICE_REACTION
+    );
   }
-
-  return ctx.pubsub.subscribeForChannel(runtime.id, ServerEvents.VOICE_REACTION);
-});
+);
 
 export {
   onUserDisconnectVoiceRoute,

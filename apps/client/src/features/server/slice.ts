@@ -9,6 +9,7 @@ import type {
   TCommandsMapByPlugin,
   TExternalStream,
   TExternalStreamsMap,
+  TFile,
   TJoinedEmoji,
   TJoinedMessage,
   TJoinedPublicUser,
@@ -54,7 +55,10 @@ export interface IServerState {
     [parentMessageId: number]: number[];
   };
   voiceMap: TVoiceMap;
-  voiceReactionsMap: Record<number, { emoji: string; expiresAt: number }>;
+  voiceReactionsMap: Record<
+    number,
+    { emoji: string; file?: TFile | null; expiresAt: number }
+  >;
   externalStreamsMap: TExternalStreamsMap;
   ownVoiceState: TVoiceUserState;
   pinnedCard: TPinnedCard | undefined;
@@ -717,17 +721,18 @@ export const serverSlice = createSlice({
       action: PayloadAction<{
         userId: number;
         emoji?: string;
+        file?: TFile | null;
         expiresAt?: number;
       }>
     ) => {
-      const { userId, emoji, expiresAt } = action.payload;
+      const { userId, emoji, file, expiresAt } = action.payload;
 
       if (!emoji || !expiresAt || expiresAt <= Date.now()) {
         delete state.voiceReactionsMap[userId];
         return;
       }
 
-      state.voiceReactionsMap[userId] = { emoji, expiresAt };
+      state.voiceReactionsMap[userId] = { emoji, file, expiresAt };
     },
     updateOwnVoiceState: (
       state,

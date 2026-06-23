@@ -22,7 +22,8 @@ const capabilitiesRoute = protectedProcedure.query(() => ({
     voiceDeviceHotSwap: true,
     webRtcAnnouncedAddress: true,
     voiceReactions: true,
-    voiceTextChatCoupling: true
+    voiceTextChatCoupling: true,
+    customEmojiReactionIds: true
   }
 }));
 
