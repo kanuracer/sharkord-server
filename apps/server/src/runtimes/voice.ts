@@ -552,6 +552,23 @@ class VoiceRuntime {
     transport.close();
   };
 
+  public recoverUserConsumers = (userId: number): boolean => {
+    const hadTransport = !!this.consumerTransports[userId];
+    const hadConsumers = !!Object.keys(this.consumers[userId] ?? {}).length;
+
+    this.removeConsumerTransport(userId);
+
+    if (this.consumers[userId]) {
+      Object.values(this.consumers[userId]).forEach((consumer) => {
+        if (!consumer.closed) consumer.close();
+      });
+
+      delete this.consumers[userId];
+    }
+
+    return hadTransport || hadConsumers;
+  };
+
   public getConsumerTransport = (userId: number) => {
     return this.consumerTransports[userId];
   };

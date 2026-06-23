@@ -39,4 +39,14 @@ describe('voice soundboard and media recovery source contracts', () => {
     expect(runtime).toContain('public recoverUserMedia');
     expect(runtime).toContain('StreamKind.SCREEN_AUDIO');
   });
+
+  test('media recovery also resets stale consumer-side remote streams', () => {
+    const route = read('routers/voice/recover-media.ts');
+    expect(route).toContain('runtime.recoverUserConsumers(ctx.user.id)');
+    expect(route).toContain('consumerTransportReset');
+    const runtime = read('runtimes/voice.ts');
+    expect(runtime).toContain('public recoverUserConsumers');
+    expect(runtime).toContain('this.removeConsumerTransport(userId)');
+    expect(runtime).toContain('delete this.consumers[userId]');
+  });
 });

@@ -8,6 +8,7 @@ const recoverMediaRoute = protectedProcedure.mutation(async ({ ctx }) => {
   const runtime = getCurrentVoiceRuntime(ctx.user.id);
   const channelId = runtime.id;
   const recoveredKinds = runtime.recoverUserMedia(ctx.user.id);
+  const consumerTransportReset = runtime.recoverUserConsumers(ctx.user.id);
 
   recoveredKinds.forEach((kind) => {
     ctx.pubsub.publishForChannel(
@@ -33,7 +34,7 @@ const recoverMediaRoute = protectedProcedure.mutation(async ({ ctx }) => {
     });
   }
 
-  return { recoveredKinds };
+  return { recoveredKinds, consumerTransportReset };
 });
 
 export { recoverMediaRoute };
