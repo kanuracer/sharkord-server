@@ -1,5 +1,10 @@
 import { Permission } from '@sharkord/shared';
 import { SERVER_VERSION } from '../../utils/env';
+import {
+  normalizeReleaseVersion,
+  selectLatestReleaseVersion,
+  type TGitHubReleaseLike
+} from '../../utils/release-versions';
 import { protectedProcedure } from '../../utils/trpc';
 import { updater } from '../../utils/updater';
 
@@ -7,17 +12,7 @@ const GITHUB_RELEASES_URL =
   'https://api.github.com/repos/kanuracer/sharkord-server/releases';
 const GITHUB_LATEST_RELEASE_URL = `${GITHUB_RELEASES_URL}/latest`;
 
-const normalizeReleaseVersion = (value: unknown): string | null => {
-  const raw = typeof value === 'string' ? value.trim() : '';
-  if (!raw || raw === '0.0.0') return null;
-  return raw.replace(/^v/i, '');
-};
-
-type GitHubRelease = {
-  draft?: boolean;
-  prerelease?: boolean;
-  tag_name?: unknown;
-};
+type GitHubRelease = TGitHubReleaseLike;
 
 const fetchGitHubJson = async <T>(url: string): Promise<T | null> => {
   try {
@@ -32,19 +27,21 @@ const fetchGitHubJson = async <T>(url: string): Promise<T | null> => {
 };
 
 const getLatestStableReleaseTagVersion = async (): Promise<string | null> => {
-  const payload = await fetchGitHubJson<GitHubRelease>(GITHUB_LATEST_RELEASE_URL);
+  const payload = await fetchGitHubJson<GitHubRelease>(
+    GITHUB_LATEST_RELEASE_URL
+  );
   return normalizeReleaseVersion(payload?.tag_name);
 };
 
 const getLatestBetaReleaseTagVersion = async (): Promise<string | null> => {
   const releases = await fetchGitHubJson<GitHubRelease[]>(
-    `${GITHUB_RELEASES_URL}?per_page=20`
+    `${GITHUB_RELEASES_URL}?per_page=100`
   );
-  const latestBeta = releases?.find((release) => {
-    if (release.draft || !release.prerelease) return false;
-    return Boolean(normalizeReleaseVersion(release.tag_name));
+
+  return selectLatestReleaseVersion(releases, {
+    prerelease: true,
+    forkOnly: true
   });
-  return normalizeReleaseVersion(latestBeta?.tag_name);
 };
 
 const getLatestVersion = async () => {
@@ -54,7 +51,9 @@ const getLatestVersion = async () => {
   }
 
   try {
-    const latestVersion = normalizeReleaseVersion(await updater.getLatestVersion());
+    const latestVersion = normalizeReleaseVersion(
+      await updater.getLatestVersion()
+    );
     if (latestVersion) return latestVersion;
   } catch {
     // Older/manual GitHub releases may not include bun-sfe-autoupdater metadata.

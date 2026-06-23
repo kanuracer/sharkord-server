@@ -80,5 +80,6 @@
   "disconnectUserFromVoiceTitle": "Disconnect user from voice?",
   "disconnectUserFromVoiceMsg": "Disconnect {{name}} from the current voice channel?",
   "userDisconnectedFromVoice": "User disconnected from voice",
-  "failedDisconnectUserFromVoice": "Failed to disconnect user from voice"
+  "failedDisconnectUserFromVoice": "Failed to disconnect user from voice",
+  "membersFallbackGroup": "Membri"
 }
