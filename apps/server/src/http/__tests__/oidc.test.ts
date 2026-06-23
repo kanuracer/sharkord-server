@@ -94,6 +94,9 @@ describe('OIDC first pass', () => {
     });
     expect(configBody.providers[0]).not.toHaveProperty('allowEmailAutoLink');
     expect(configBody.providers[0]).not.toHaveProperty('allowRegistration');
+    expect(configBody.providers[0]).not.toHaveProperty('clientSecret');
+    expect(configBody.providers[0]).not.toHaveProperty('tokenEndpoint');
+    expect(configBody.providers[0]).not.toHaveProperty('jwksUri');
     expect(configBody.providers[0]).not.toHaveProperty('jwks');
 
     const oidcResponse = await fetch(`${testsBaseUrl}/login/oidc`, {

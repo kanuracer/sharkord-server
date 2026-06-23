@@ -25,8 +25,6 @@ type PublicOidcProviderConfig = {
   issuer: string;
   clientId: string;
   authorizationEndpoint: string;
-  tokenEndpoint: string;
-  jwksUri: string;
   scopes: string[];
 };
 
@@ -52,8 +50,6 @@ const publicProviders = (): PublicOidcProviderConfig[] => {
     issuer: provider.issuer,
     clientId: provider.clientId,
     authorizationEndpoint: provider.authorizationEndpoint,
-    tokenEndpoint: provider.tokenEndpoint,
-    jwksUri: provider.jwksUri,
     scopes: provider.scopes
   }));
 };
