@@ -9,6 +9,17 @@ import { getPrivateIp, getPublicIp } from './helpers/network';
 import { CONFIG_INI_PATH } from './helpers/paths';
 import { IS_DEVELOPMENT } from './utils/env';
 
+const zStringList = z.preprocess((value) => {
+  if (typeof value === 'string') {
+    return value
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+  }
+
+  return value;
+}, z.array(z.string()).default([]));
+
 const [SERVER_PUBLIC_IP, SERVER_PRIVATE_IP] = await Promise.all([
   getPublicIp(),
   getPrivateIp()
@@ -19,6 +30,14 @@ const zConfig = z.object({
     port: z.coerce.number().int().positive(),
     debug: z.coerce.boolean(),
     autoupdate: z.coerce.boolean()
+  }),
+  security: z.object({
+    trustedProxies: zStringList,
+    loginAbuse: z.object({
+      maxFailedAttempts: z.coerce.number().int().positive(),
+      windowMs: z.coerce.number().int().positive(),
+      blockMs: z.coerce.number().int().positive()
+    })
   }),
   webRtc: z.object({
     port: z.coerce.number().int().positive(),
@@ -104,6 +123,14 @@ const defaultConfig: TConfig = {
     port: 4991,
     debug: IS_DEVELOPMENT,
     autoupdate: false
+  },
+  security: {
+    trustedProxies: ['127.0.0.1', '::1'],
+    loginAbuse: {
+      maxFailedAttempts: 5,
+      windowMs: 10 * 60_000,
+      blockMs: 30 * 60_000
+    }
   },
   webRtc: {
     port: 40000,
@@ -200,6 +227,10 @@ config = applyEnvOverrides(config, {
   'server.port': 'SHARKORD_PORT',
   'server.debug': 'SHARKORD_DEBUG',
   'server.autoupdate': 'SHARKORD_AUTOUPDATE',
+  'security.trustedProxies': 'SHARKORD_TRUSTED_PROXIES',
+  'security.loginAbuse.maxFailedAttempts': 'SHARKORD_LOGIN_ABUSE_MAX_FAILED_ATTEMPTS',
+  'security.loginAbuse.windowMs': 'SHARKORD_LOGIN_ABUSE_WINDOW_MS',
+  'security.loginAbuse.blockMs': 'SHARKORD_LOGIN_ABUSE_BLOCK_MS',
   'webRtc.port': 'SHARKORD_WEBRTC_PORT',
   'webRtc.announcedAddress': 'SHARKORD_WEBRTC_ANNOUNCED_ADDRESS',
   'webRtc.maxBitrate': 'SHARKORD_WEBRTC_MAX_BITRATE',

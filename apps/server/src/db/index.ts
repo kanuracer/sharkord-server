@@ -4,6 +4,7 @@ import { BunSQLiteDatabase, drizzle } from 'drizzle-orm/bun-sqlite';
 import { seedTestDb } from '../__tests__/seed';
 import { DB_PATH, DRIZZLE_PATH } from '../helpers/paths';
 import { IS_E2E } from '../utils/env';
+import { ensureRoleWeightColumn } from './compat';
 import { seedDatabase } from './seed';
 
 let db: BunSQLiteDatabase;
@@ -16,6 +17,7 @@ const loadDb = async () => {
   db = drizzle({ client: sqlite });
 
   await migrate(db, { migrationsFolder: DRIZZLE_PATH });
+  ensureRoleWeightColumn(sqlite);
 
   if (!IS_E2E) {
     await seedDatabase();

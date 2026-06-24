@@ -2,6 +2,14 @@ import { describe, expect, test } from 'bun:test';
 import type http from 'http';
 import { getWsInfo } from '../get-ws-info';
 
+const proxyHeaderNames = new Set([
+  'cf-connecting-ip',
+  'true-client-ip',
+  'x-forwarded-for',
+  'x-real-ip',
+  'forwarded'
+]);
+
 const createRequest = ({
   headers = {},
   remoteAddress
@@ -9,10 +17,13 @@ const createRequest = ({
   headers?: http.IncomingHttpHeaders;
   remoteAddress?: string;
 } = {}) => {
+  const hasProxyHeader = Object.keys(headers).some((key) => proxyHeaderNames.has(key.toLowerCase()));
+  const effectiveRemoteAddress = remoteAddress ?? (hasProxyHeader ? '127.0.0.1' : undefined);
+
   return {
     headers,
-    socket: { remoteAddress },
-    connection: { remoteAddress }
+    socket: { remoteAddress: effectiveRemoteAddress },
+    connection: { remoteAddress: effectiveRemoteAddress }
   } as unknown as http.IncomingMessage;
 };
 

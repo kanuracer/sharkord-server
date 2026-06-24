@@ -6,7 +6,7 @@ import {
 } from '@sharkord/shared';
 import chalk from 'chalk';
 import { randomBytes } from 'crypto';
-import { and, eq, isNull, max, sql } from 'drizzle-orm';
+import { and, eq, gt, isNull, max, sql } from 'drizzle-orm';
 import http from 'http';
 import jwt from 'jsonwebtoken';
 import z from 'zod';
@@ -20,6 +20,8 @@ import { getUserByIdentity } from '../db/queries/users';
 import {
   channelReadStates,
   invites,
+  ipSecurityEvents,
+  ipSecurityRules,
   messages,
   userAppPasswords,
   userMfaRecoveryCodes,
@@ -31,6 +33,12 @@ import { safeCompare } from '../helpers/safe-compare';
 import { logger } from '../logger';
 import { enqueueActivityLog } from '../queues/activity-log';
 import { invariant } from '../utils/invariant';
+import {
+  findMatchingIpRule,
+  isIpAllowedByRules,
+  isRuleActive,
+  normalizeIpRange
+} from '../utils/ip-security';
 import {
   createRateLimiter,
   getClientRateLimitKey,
@@ -70,6 +78,92 @@ const loginRateLimiter = createRateLimiter({
   maxRequests: config.rateLimiters.joinServer.maxRequests,
   windowMs: config.rateLimiters.joinServer.windowMs
 });
+
+type TLoginIpRule = typeof ipSecurityRules.$inferSelect;
+
+const getActiveIpSecurityRules = async (): Promise<TLoginIpRule[]> => {
+  const now = Date.now();
+  const rows = await db.select().from(ipSecurityRules);
+  return rows.filter((rule) => isRuleActive(rule, now));
+};
+
+const recordIpSecurityEvent = async (input: {
+  ip: string;
+  identity?: string;
+  event: string;
+  reason?: string;
+  metadata?: Record<string, unknown>;
+}) =>
+  db.insert(ipSecurityEvents).values({
+    ip: input.ip,
+    identity: input.identity ?? null,
+    event: input.event,
+    reason: input.reason ?? null,
+    metadata: input.metadata ?? null,
+    createdAt: Date.now()
+  });
+
+const recordFailedLoginAttempt = async (input: {
+  ip?: string;
+  identity: string;
+  reason: string;
+  allowlisted: boolean;
+}) => {
+  if (!input.ip) return;
+
+  const ip = normalizeIpRange(input.ip);
+  if (!ip) return;
+
+  await recordIpSecurityEvent({
+    ip,
+    identity: input.identity,
+    event: 'login_failed',
+    reason: input.reason
+  });
+
+  if (input.allowlisted) return;
+
+  const windowStart = Date.now() - config.security.loginAbuse.windowMs;
+  const failedAttempts = await db
+    .select({ id: ipSecurityEvents.id })
+    .from(ipSecurityEvents)
+    .where(
+      and(
+        eq(ipSecurityEvents.ip, ip),
+        eq(ipSecurityEvents.event, 'login_failed'),
+        gt(ipSecurityEvents.createdAt, windowStart)
+      )
+    );
+
+  if (failedAttempts.length < config.security.loginAbuse.maxFailedAttempts) return;
+
+  const activeRules = await getActiveIpSecurityRules();
+  if (findMatchingIpRule(ip, activeRules, 'block')) return;
+
+  const expiresAt = Date.now() + config.security.loginAbuse.blockMs;
+  const reason = `${failedAttempts.length} failed login attempts`;
+  const rule = await db
+    .insert(ipSecurityRules)
+    .values({
+      kind: 'block',
+      ipRange: ip,
+      reason,
+      expiresAt,
+      createdBy: null,
+      createdAt: Date.now(),
+      updatedAt: null
+    })
+    .returning()
+    .get();
+
+  await recordIpSecurityEvent({
+    ip,
+    identity: input.identity,
+    event: 'ip_auto_blocked',
+    reason,
+    metadata: { ruleId: rule.id, expiresAt }
+  });
+};
 
 const registerUser = async (
   identity: string,
@@ -148,8 +242,32 @@ const loginRouteHandler = async (
   const settings = await getSettings();
   let existingUser = await getUserByIdentity(data.identity);
   const connectionInfo = getWsInfo(undefined, req);
+  const activeIpRules = await getActiveIpSecurityRules();
+  const allowlistedIp = isIpAllowedByRules(connectionInfo?.ip, activeIpRules);
+  const blockedIpRule = allowlistedIp
+    ? undefined
+    : findMatchingIpRule(connectionInfo?.ip, activeIpRules, 'block');
 
-  if (connectionInfo?.ip) {
+  if (blockedIpRule && connectionInfo?.ip) {
+    await recordIpSecurityEvent({
+      ip: connectionInfo.ip,
+      identity: data.identity,
+      event: 'login_blocked',
+      reason: blockedIpRule.reason ?? undefined,
+      metadata: { ruleId: blockedIpRule.id }
+    });
+
+    res.writeHead(403, { 'Content-Type': 'application/json' });
+    res.end(
+      JSON.stringify({
+        error: 'Login from this IP is blocked. Contact an administrator.'
+      })
+    );
+
+    return;
+  }
+
+  if (connectionInfo?.ip && !allowlistedIp) {
     const key = getClientRateLimitKey(connectionInfo.ip);
     const rateLimit = loginRateLimiter.consume(key);
 
@@ -169,7 +287,7 @@ const loginRouteHandler = async (
 
       return;
     }
-  } else {
+  } else if (!connectionInfo?.ip) {
     logger.warn(
       '[Rate Limiter HTTP] Missing IP address in request info, skipping rate limiting for /login route.'
     );
@@ -184,6 +302,13 @@ const loginRouteHandler = async (
       logger.info(
         `${chalk.dim('[Auth]')} Failed login/registration attempt for identity "${data.identity}" due to invalid invite (${result.error}). (IP: ${connectionInfo?.ip || 'unknown'})`
       );
+
+      await recordFailedLoginAttempt({
+        ip: connectionInfo?.ip,
+        identity: data.identity,
+        reason: 'invalid invite',
+        allowlisted: allowlistedIp
+      });
 
       throw new HttpValidationError('identity', GENERIC_LOGIN_ERROR);
     }
@@ -277,6 +402,13 @@ const loginRouteHandler = async (
       `${chalk.dim('[Auth]')} Failed login attempt for user "${existingUser.identity}" due to invalid password. (IP: ${connectionInfo?.ip || 'unknown'})`
     );
 
+    await recordFailedLoginAttempt({
+      ip: connectionInfo?.ip,
+      identity: data.identity,
+      reason: 'invalid password',
+      allowlisted: allowlistedIp
+    });
+
     throw new HttpValidationError('identity', GENERIC_LOGIN_ERROR);
   }
 
@@ -348,6 +480,12 @@ const loginRouteHandler = async (
         logger.info(
           `${chalk.dim('[Auth]')} Failed login attempt for user "${existingUser.identity}" due to invalid two-factor code. (IP: ${connectionInfo?.ip || 'unknown'})`
         );
+        await recordFailedLoginAttempt({
+          ip: connectionInfo?.ip,
+          identity: data.identity,
+          reason: 'invalid two-factor code',
+          allowlisted: allowlistedIp
+        });
         throw new HttpValidationError('totpCode', 'Invalid two-factor code');
       }
 

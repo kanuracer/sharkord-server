@@ -44,12 +44,19 @@ const login = async (
   password: string,
   invite?: string,
   totpCode?: string,
-  options: { appPassword?: string; rememberDevice?: boolean; deviceName?: string; recoveryCode?: string } = {}
+  options: {
+    appPassword?: string;
+    rememberDevice?: boolean;
+    deviceName?: string;
+    recoveryCode?: string;
+  } = {},
+  headers: Record<string, string> = {}
 ) =>
   fetch(`${testsBaseUrl}/login`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      ...headers
     },
     body: JSON.stringify({
       identity,

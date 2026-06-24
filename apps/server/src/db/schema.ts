@@ -329,6 +329,47 @@ const logins = sqliteTable(
   ]
 );
 
+const ipSecurityRules = sqliteTable(
+  'ip_security_rules',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    kind: text('kind').notNull(),
+    ipRange: text('ip_range').notNull(),
+    reason: text('reason'),
+    expiresAt: integer('expires_at'),
+    createdBy: integer('created_by').references(() => users.id, {
+      onDelete: 'set null'
+    }),
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at')
+  },
+  (t) => [
+    index('ip_security_rules_kind_idx').on(t.kind),
+    index('ip_security_rules_ip_range_idx').on(t.ipRange),
+    index('ip_security_rules_expires_idx').on(t.expiresAt),
+    index('ip_security_rules_kind_ip_idx').on(t.kind, t.ipRange)
+  ]
+);
+
+const ipSecurityEvents = sqliteTable(
+  'ip_security_events',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    ip: text('ip').notNull(),
+    identity: text('identity'),
+    event: text('event').notNull(),
+    reason: text('reason'),
+    metadata: text('metadata', { mode: 'json' }).$type<Record<string, unknown>>(),
+    createdAt: integer('created_at').notNull()
+  },
+  (t) => [
+    index('ip_security_events_ip_idx').on(t.ip),
+    index('ip_security_events_event_idx').on(t.event),
+    index('ip_security_events_created_idx').on(t.createdAt),
+    index('ip_security_events_ip_created_idx').on(t.ip, t.createdAt)
+  ]
+);
+
 const messages = sqliteTable(
   'messages',
   {
@@ -655,6 +696,8 @@ export {
   emojis,
   files,
   incomingWebhooks,
+  ipSecurityEvents,
+  ipSecurityRules,
   invites,
   logins,
   messageFiles,

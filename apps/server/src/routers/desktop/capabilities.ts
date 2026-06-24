@@ -31,7 +31,8 @@ const capabilitiesRoute = protectedProcedure.query(() => ({
     directMessagePinning: true,
     channelAccessMembers: true,
     customUserStatus: true,
-    notificationSoundControls: true
+    notificationSoundControls: true,
+    securityIpRules: true
   }
 }));
 

@@ -10,6 +10,7 @@ import { General } from './general';
 import { Invites } from './invites';
 import { Plugins } from './plugins';
 import { Roles } from './roles';
+import { Security } from './security';
 import { Storage } from './storage';
 import { Updates } from './updates';
 import { Users } from './users';
@@ -26,6 +27,7 @@ const ServerSettings = memo(({ close }: TServerSettingsProps) => {
     if (can(Permission.MANAGE_EMOJIS)) return 'emojis';
     if (can(Permission.MANAGE_STORAGE)) return 'storage';
     if (can(Permission.MANAGE_USERS)) return 'users';
+    if (can(Permission.MANAGE_USERS)) return 'security';
     if (can(Permission.MANAGE_INVITES)) return 'invites';
     if (can(Permission.MANAGE_UPDATES)) return 'updates';
     return 'general';
@@ -60,6 +62,9 @@ const ServerSettings = memo(({ close }: TServerSettingsProps) => {
             <TabsTrigger value="users" disabled={!can(Permission.MANAGE_USERS)}>
               {t('usersTab')}
             </TabsTrigger>
+            <TabsTrigger value="security" disabled={!can(Permission.MANAGE_USERS)}>
+              {t('securityTab')}
+            </TabsTrigger>
             <TabsTrigger
               value="invites"
               disabled={!can(Permission.MANAGE_INVITES)}
@@ -93,6 +98,9 @@ const ServerSettings = memo(({ close }: TServerSettingsProps) => {
           </TabsContent>
           <TabsContent value="users" className="space-y-6">
             {can(Permission.MANAGE_USERS) && <Users />}
+          </TabsContent>
+          <TabsContent value="security" className="space-y-6">
+            {can(Permission.MANAGE_USERS) && <Security />}
           </TabsContent>
           <TabsContent value="invites" className="space-y-6">
             {can(Permission.MANAGE_INVITES) && <Invites />}

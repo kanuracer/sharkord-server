@@ -11,6 +11,7 @@ import { othersRouter } from './others';
 import { pluginsRouter } from './plugins';
 import { retentionRouter } from './retention';
 import { rolesRouter } from './roles';
+import { securityRouter } from './security';
 import { usersRouter } from './users';
 import { voiceRouter } from './voice';
 import { webhooksRouter } from './webhooks';
@@ -30,7 +31,8 @@ const appRouter = t.router({
   categories: categoriesRouter,
   plugins: pluginsRouter,
   webhooks: webhooksRouter,
-  retention: retentionRouter
+  retention: retentionRouter,
+  security: securityRouter
 });
 
 type AppRouter = typeof appRouter;

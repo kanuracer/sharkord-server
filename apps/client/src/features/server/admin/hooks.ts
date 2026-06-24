@@ -38,6 +38,27 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { useCan } from '../hooks';
 
+type TSecurityIpRule = {
+  id: number;
+  kind: string;
+  ipRange: string;
+  reason: string | null;
+  expiresAt: number | null;
+  createdBy: number | null;
+  createdAt: number;
+  updatedAt: number | null;
+};
+
+type TSecurityEvent = {
+  id: number;
+  ip: string;
+  identity: string | null;
+  event: string;
+  reason: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: number;
+};
+
 // TODO: review this whole file for optimizations and improvements
 
 export const useAdminGeneral = () => {
@@ -581,6 +602,97 @@ export const useAdminUsers = () => {
     users,
     refetch: fetchUsers,
     loading
+  };
+};
+
+export const useAdminSecurity = () => {
+  const [loading, setLoading] = useState(true);
+  const [allowed, setAllowed] = useState<TSecurityIpRule[]>([]);
+  const [blocked, setBlocked] = useState<TSecurityIpRule[]>([]);
+  const [events, setEvents] = useState<TSecurityEvent[]>([]);
+  const [ipRange, setIpRange] = useState('');
+  const [reason, setReason] = useState('');
+
+  const fetchSecurity = useCallback(async () => {
+    setLoading(true);
+
+    const trpc = getTRPCClient();
+    const [rules, events] = await Promise.all([
+      trpc.security.getIpRules.query(),
+      trpc.security.getSecurityEvents.query({ limit: 40 })
+    ]);
+
+    setAllowed(rules.allowed as TSecurityIpRule[]);
+    setBlocked(rules.blocked as TSecurityIpRule[]);
+    setEvents(events as TSecurityEvent[]);
+    setLoading(false);
+  }, []);
+
+  const resetDraft = useCallback(() => {
+    setIpRange('');
+    setReason('');
+  }, []);
+
+  const addAllowlist = useCallback(async () => {
+    const trpc = getTRPCClient();
+    await trpc.security.addIpAllowlist.mutate({
+      ipRange,
+      reason: reason || undefined
+    });
+    toast.success('IP allowlist rule added');
+    resetDraft();
+    await fetchSecurity();
+  }, [fetchSecurity, ipRange, reason, resetDraft]);
+
+  const addBlock = useCallback(async () => {
+    const trpc = getTRPCClient();
+    await trpc.security.addIpBlock.mutate({
+      ipRange,
+      reason: reason || undefined
+    });
+    toast.success('IP block rule added');
+    resetDraft();
+    await fetchSecurity();
+  }, [fetchSecurity, ipRange, reason, resetDraft]);
+
+  const onUnblockIp = useCallback(
+    async (ip: string) => {
+      const trpc = getTRPCClient();
+      await trpc.security.unblockIp.mutate({ ip });
+      toast.success('IP unblocked');
+      await fetchSecurity();
+    },
+    [fetchSecurity]
+  );
+
+  const onRemoveRule = useCallback(
+    async (ruleId: number) => {
+      const trpc = getTRPCClient();
+      await trpc.security.removeIpRule.mutate({ ruleId });
+      toast.success('IP rule removed');
+      await fetchSecurity();
+    },
+    [fetchSecurity]
+  );
+
+  useEffect(() => {
+    fetchSecurity();
+  }, [fetchSecurity]);
+
+  return {
+    allowed,
+    blocked,
+    events,
+    loading,
+    ipRange,
+    reason,
+    setIpRange,
+    setReason,
+    addAllowlist,
+    addBlock,
+    onUnblockIp,
+    onRemoveRule,
+    refetch: fetchSecurity
   };
 };
 

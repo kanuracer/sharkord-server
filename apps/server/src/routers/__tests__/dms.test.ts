@@ -253,7 +253,8 @@ describe('dms router', () => {
         directMessagePinning: true,
         channelAccessMembers: true,
         customUserStatus: true,
-        notificationSoundControls: true
+        notificationSoundControls: true,
+        securityIpRules: true
       }
     });
   });

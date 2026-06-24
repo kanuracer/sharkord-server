@@ -495,14 +495,13 @@ describe('/login', () => {
 
     const limitedResponse = await login('testowner', 'wrongpassword');
 
-    expect(limitedResponse.status).toBe(429);
-    expect(limitedResponse.headers.get('retry-after')).toBeTruthy();
+    expect(limitedResponse.status).toBe(403);
 
     const data = await limitedResponse.json();
 
     expect(data).toHaveProperty(
       'error',
-      'Too many login attempts. Please try again shortly.'
+      'Login from this IP is blocked. Contact an administrator.'
     );
   });
 
