@@ -1,6 +1,6 @@
 services:
   sharkord:
-    image: ghcr.io/kanuracer/sharkord-server:0.0.23
+    image: ghcr.io/kanuracer/sharkord-server:0.0.24
     container_name: sharkord
     restart: unless-stopped
     ports:
@@ -14,6 +14,7 @@ services:
       SHARKORD_WEBRTC_PORT: "40000"
       SHARKORD_WEBRTC_ANNOUNCED_ADDRESS: "sharkord.kanuracer.eu"
       SHARKORD_WEBRTC_MAX_BITRATE: "30000000"
+      SHARKORD_TRUSTED_PROXIES: "172.19.0.0/16,fd00:dead:beef:19::/64"
     volumes:
       - /data/sharkord/config:/home/bun/.config/sharkord
     networks:

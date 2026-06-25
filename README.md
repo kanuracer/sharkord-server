@@ -1,6 +1,6 @@
 <div align="center">
   <h1>Sharkord Server</h1>
-  <p><strong>A lightweight, self-hosted real-time communication platform</strong></p>
+  <p><strong>Self-hosted real-time communication server with Web UI, API, and WebRTC media support</strong></p>
 
   [![Version](https://img.shields.io/github/v/release/kanuracer/sharkord-server)](https://github.com/kanuracer/sharkord-server/releases)
   [![License](https://img.shields.io/github/license/Sharkord/sharkord)](LICENSE)
@@ -12,51 +12,90 @@
 
 This repository is the `kanuracer/sharkord-server` fork of [Sharkord/sharkord](https://github.com/Sharkord/sharkord).
 
-Current fork additions:
+Current public image tags:
 
-- Public GHCR image: `ghcr.io/kanuracer/sharkord-server:latest`
-- Stable fork tag: `ghcr.io/kanuracer/sharkord-server:0.0.23`
-- Branch-current tag: `ghcr.io/kanuracer/sharkord-server:kr-main`
-- Docker entrypoint with persistent config directory support
-- Optional `PUID`/`PGID` remapping for host-mounted volumes
-- Example production Compose file under `deploy/`
+| Tag | Purpose |
+| --- | --- |
+| `ghcr.io/kanuracer/sharkord-server:0.0.24` | Current stable production tag |
+| `ghcr.io/kanuracer/sharkord-server:latest` | Current stable image, moves when a new stable release is published |
+| `ghcr.io/kanuracer/sharkord-server:kr-main` | Current `kr-main` branch image |
+| `ghcr.io/kanuracer/sharkord-server:latest-beta` | Current beta/prerelease image |
 
 > [!NOTE]
-> Sharkord itself is still alpha software. Bugs, incomplete features, and breaking changes are expected.
+> Sharkord is alpha software. Bugs, incomplete features, and breaking changes are expected. Pin production deployments to a versioned image tag when you want controlled updates.
 
 ## What is Sharkord?
 
-Sharkord is a self-hosted real-time communication server with web UI, API, chat, voice, video, and screen sharing support.
+Sharkord is a self-hosted real-time communication server. Upstream Sharkord provides the core Web UI, API, channels, messages, roles, and WebRTC media features. This README focuses on this fork's deployment shape and fork-only additions.
 
 ## Kanuracer fork features
 
-This section lists only features added by the `kanuracer/sharkord-server` fork on top of upstream Sharkord.
+This section lists features added by the `kanuracer/sharkord-server` fork on top of upstream Sharkord.
 
-- Public multi-arch GHCR images with versioned tags, `latest`, and `kr-main`.
-- Docker entrypoint with persistent config directory support and optional `PUID`/`PGID` remapping for mounted volumes.
-- Desktop capability endpoint so compatible desktop clients can detect fork-only features.
-- Direct-message conversation deletion support for compatible clients.
-- Owner-token and server self-update routes exposed through the desktop capability gate.
-- Voice user move support plus `Move members` role permission for moderators.
-- Fork-aware update checks that track `kanuracer/sharkord-server` releases instead of upstream Sharkord releases.
+### Deployment and image distribution
+
+- Public multi-arch GHCR images for `linux/amd64` and `linux/arm64`.
+- Versioned stable tags, `latest`, `kr-main`, and `latest-beta` image channels.
+- Docker entrypoint with persistent config directory support.
+- Optional `PUID`/`PGID` remapping for host-mounted config/data directories.
+- Example Compose files under `deploy/` for pinned stable and `latest` deployments.
+- Fork-aware update checks that track `kanuracer/sharkord-server` releases.
+
+### Desktop compatibility API
+
+- `desktop.capabilities` endpoint with fork flavor metadata so compatible clients can enable fork-only features only when the connected server supports them.
+- Owner-token and server self-update routes exposed through the Desktop capability gate.
+- Native Desktop client feature gates for fork-only moderation, voice, account, and admin workflows.
+
+### Messaging, DMs, channels, and roles
+
+- Direct-message conversation delete/hide support for compatible clients.
+- Direct-message pinning support.
+- Cross-category channel move support.
+- Server-side channel access member filtering.
+- Role weights for server-owned member sorting.
+- Role mentions and role-mention fanout metadata.
+- Thread unread inbox aggregation.
+- Message edit attachment support.
+- Incoming webhooks and retention-policy support.
+
+### Account, auth, and security additions
+
+- MFA/TOTP setup support plus app-password sessions.
+- MFA reauth hardening and audit events for sensitive account-security actions.
+- OIDC login provider support through environment configuration.
+- Generic client-facing login failures while preserving precise internal auth logs.
+- IP security rules, login-abuse controls, and trusted-proxy parsing for Docker/Nginx Proxy Manager deployments.
+
+### Voice and WebRTC additions
+
+- Voice user move and disconnect support plus moderator permission integration.
+- Voice user media moderation support.
+- Voice device hot-swap capability metadata.
+- WebRTC announced-address capability metadata.
+- Voice reactions and voice text-chat coupling.
+- Voice soundboard capability metadata.
+- Voice media recovery hardening.
+- Channel links for voice/media workflows.
+- Custom emoji reaction IDs.
+- Custom user status and notification sound-control capability metadata.
 
 ## Desktop app
 
 For the native desktop client, use [kanuracer/sharkord-desktop](https://github.com/kanuracer/sharkord-desktop).
 
-The desktop app uses this fork's capability endpoint to enable fork-only features such as direct-message deletion, owner-token/server update actions, and voice user moves when the connected server supports them.
-
 Desktop downloads are published at [kanuracer/sharkord-desktop-releases](https://github.com/kanuracer/sharkord-desktop-releases/releases).
+
+The Desktop app reads this server fork's capability endpoint and enables supported fork-only features only when the connected server advertises them. Unknown/original Sharkord servers fall back to the upstream-safe behavior.
 
 ## Documentation
 
-Upstream docs: [sharkord.com/docs](https://sharkord.com/docs)
-
-Fork-specific deployment notes are in this README and in the Compose example under `deploy/`.
+- Upstream docs: [sharkord.com/docs](https://sharkord.com/docs)
+- Fork deployment notes: this README plus the Compose files under `deploy/`
 
 ## Quick start: Docker
 
-Run the public GHCR image:
+Run the current stable image:
 
 ```bash
 docker run \
@@ -71,7 +110,7 @@ docker run \
   -e SHARKORD_WEBRTC_PORT=40000 \
   -e SHARKORD_WEBRTC_ANNOUNCED_ADDRESS=your.domain.example \
   -v ./data:/home/bun/.config/sharkord \
-  ghcr.io/kanuracer/sharkord-server:latest
+  ghcr.io/kanuracer/sharkord-server:0.0.24
 ```
 
 Open:
@@ -87,12 +126,12 @@ If the server runs behind a reverse proxy, proxy HTTP/WebSocket traffic to port 
 
 ## Docker Compose: production-style example
 
-Example for a reverse-proxy network plus direct WebRTC port exposure:
+Example for a reverse-proxy Docker network plus direct WebRTC port exposure:
 
 ```yaml
 services:
   sharkord:
-    image: ghcr.io/kanuracer/sharkord-server:latest
+    image: ghcr.io/kanuracer/sharkord-server:0.0.24
     container_name: sharkord
     restart: unless-stopped
     ports:
@@ -106,6 +145,7 @@ services:
       SHARKORD_WEBRTC_PORT: "40000"
       SHARKORD_WEBRTC_ANNOUNCED_ADDRESS: "your.domain.example"
       SHARKORD_WEBRTC_MAX_BITRATE: "30000000"
+      SHARKORD_TRUSTED_PROXIES: "172.19.0.0/16,fd00:dead:beef:19::/64"
     volumes:
       - /data/sharkord/config:/home/bun/.config/sharkord
     networks:
@@ -123,9 +163,10 @@ networks:
     name: npm_default
 ```
 
-A concrete deployment file is available at:
+Concrete Compose examples are available at:
 
 ```text
+deploy/compose.sharkord.kanuracer.eu.yaml
 deploy/compose.sharkord.kanuracer.eu.latest.yaml
 ```
 
@@ -144,6 +185,8 @@ http://sharkord:4991
 
 Enable WebSocket forwarding in the reverse proxy.
 
+If your proxy runs in the same Docker bridge network, set `SHARKORD_TRUSTED_PROXIES` to that bridge subnet so Sharkord can safely read `X-Forwarded-For` / `X-Real-IP` for login-abuse and IP-security decisions.
+
 ## Environment variables
 
 | Variable | Example | Notes |
@@ -155,6 +198,12 @@ Enable WebSocket forwarding in the reverse proxy.
 | `SHARKORD_WEBRTC_PORT` | `40000` | WebRTC media port |
 | `SHARKORD_WEBRTC_ANNOUNCED_ADDRESS` | `your.domain.example` | Public DNS name/IP clients should use for WebRTC |
 | `SHARKORD_WEBRTC_MAX_BITRATE` | `30000000` | Optional max bitrate setting |
+| `SHARKORD_TRUSTED_PROXIES` | `172.19.0.0/16,fd00:dead:beef:19::/64` | Comma-separated proxy IPs/CIDRs trusted for forwarded client IP headers |
+| `SHARKORD_LOGIN_ABUSE_MAX_FAILED_ATTEMPTS` | `10` | Optional failed-login threshold override |
+| `SHARKORD_LOGIN_ABUSE_WINDOW_MS` | `600000` | Optional failed-login window override |
+| `SHARKORD_LOGIN_ABUSE_BLOCK_MS` | `900000` | Optional failed-login block duration override |
+| `SHARKORD_OIDC_ENABLED` | `false` | Enables configured OIDC providers |
+| `SHARKORD_OIDC_PROVIDERS` | JSON string | Provider configuration; keep secrets out of public docs and shell history |
 | `PUID` / `PGID` | `1000` / `1000` | Optional host UID/GID mapping for mounted volumes |
 
 ## Updating
@@ -165,15 +214,23 @@ With Compose:
 docker compose pull
 docker compose up -d
 docker logs -f sharkord
+curl -fsS http://127.0.0.1:4991/info
 ```
 
 Recommended production pinning:
 
 ```yaml
-image: ghcr.io/kanuracer/sharkord-server:0.0.23
+image: ghcr.io/kanuracer/sharkord-server:0.0.24
 ```
 
-Use `latest` only if you want automatic tracking of the newest published fork image.
+Use `latest` only if you intentionally want to track the newest stable fork image.
+
+Rollback to the previous pinned image by editing the Compose image tag, then running:
+
+```bash
+docker compose pull
+docker compose up -d
+```
 
 ## Building locally
 
@@ -182,7 +239,7 @@ Prerequisites:
 - Bun `1.3.14`
 - Docker with BuildKit/buildx if building container images
 
-Build app binaries:
+Install dependencies and build app binaries:
 
 ```bash
 bun install --frozen-lockfile
@@ -231,23 +288,28 @@ The package should be public. If pull still fails:
 
 ```bash
 docker logout ghcr.io
-docker pull ghcr.io/kanuracer/sharkord-server:latest
+docker pull ghcr.io/kanuracer/sharkord-server:0.0.24
 ```
 
-If the package is private again, authenticate the Docker host:
+If the package is private again, authenticate the Docker host with a token that has package read permission:
 
 ```bash
-echo '<github-token>' | docker login ghcr.io -u kanuracer --password-stdin
+echo '<github-token>' | docker login ghcr.io -u <github-user> --password-stdin
 ```
 
 ### Web UI loads, but calls/media fail
 
 Check:
 
-- Reverse proxy forwards WebSockets
-- Proxy target is `sharkord:4991` or the correct container IP/port
-- `40000/tcp` and `40000/udp` are reachable from clients
-- `SHARKORD_WEBRTC_ANNOUNCED_ADDRESS` matches the public DNS/IP clients use
+- Reverse proxy forwards WebSockets.
+- Proxy target is `sharkord:4991` or the correct container IP/port.
+- `40000/tcp` and `40000/udp` are reachable from clients.
+- `SHARKORD_WEBRTC_ANNOUNCED_ADDRESS` matches the public DNS/IP clients use.
+- `SHARKORD_TRUSTED_PROXIES` contains the reverse-proxy network/IP when IP-security or login-abuse features need real client IPs.
+
+### Login-abuse or IP-security logs show the proxy IP
+
+Set `SHARKORD_TRUSTED_PROXIES` to the immediate reverse-proxy IP/CIDR. For a Docker bridge proxy network, use the bridge subnet, not the public client subnet.
 
 ### Container starts, then owner token appears in logs
 
@@ -277,11 +339,9 @@ Built with open-source technologies:
 - [Drizzle ORM](https://orm.drizzle.team)
 - [React](https://react.dev)
 - [Radix UI](https://www.radix-ui.com)
-- [ShadCN UI](https://ui.shadcn.com/)
 - [Tailwind CSS](https://tailwindcss.com)
 
 <div align="center">
-  <p>Made with ❤️ by the Sharkord team</p>
   <p>
     <a href="https://github.com/Sharkord/sharkord">Upstream GitHub</a> •
     <a href="https://github.com/kanuracer/sharkord-server">Fork GitHub</a>
