@@ -24,18 +24,21 @@ describe('DM pin and channel access members UI source contract', () => {
     expect(source).not.toContain('type="checkbox"');
   });
 
-  test('right sidebar groups online users before offline users and then by role', () => {
+  test('right sidebar groups online users by role and keeps offline as one unsorted group', () => {
     const source = read('components/right-sidebar/index.tsx');
     const groups = read('components/right-sidebar/member-groups.ts');
-    expect(source).toContain('useRoles');
+    expect(source).toContain('state.server.users');
     expect(source).toContain('groupUsersByStatusAndRole');
+    expect(source).toContain('group.showTitle !== false');
     expect(groups).toContain('UserStatus');
     expect(groups).toContain('onlineTitle');
     expect(groups).toContain('offlineTitle');
     expect(groups).toContain('highestSortableRole');
     expect(groups).toContain('defaultRole');
     expect(groups).toContain('!role.isDefault');
-    expect(groups).toContain('role.name');
+    expect(groups).toContain("key: 'offline-members'");
+    expect(groups).toContain('showTitle: false');
+    expect(groups).toContain('users: offlineUsers');
   });
 
   test('message pin permission appears as separate role permission in generated permission UI', () => {

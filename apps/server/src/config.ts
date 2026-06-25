@@ -223,7 +223,7 @@ if (!configExists) {
   }
 }
 
-config = applyEnvOverrides(config, {
+config = zConfig.parse(applyEnvOverrides(config, {
   'server.port': 'SHARKORD_PORT',
   'server.debug': 'SHARKORD_DEBUG',
   'server.autoupdate': 'SHARKORD_AUTOUPDATE',
@@ -236,7 +236,7 @@ config = applyEnvOverrides(config, {
   'webRtc.maxBitrate': 'SHARKORD_WEBRTC_MAX_BITRATE',
   'oidc.enabled': 'SHARKORD_OIDC_ENABLED',
   'oidc.providers': 'SHARKORD_OIDC_PROVIDERS'
-});
+}));
 
 config = Object.freeze(config);
 

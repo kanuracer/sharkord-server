@@ -2,7 +2,6 @@ import { ResizableSidebar } from '@/components/resizable-sidebar';
 import { UserAvatar } from '@/components/user-avatar';
 import { selectedChannelIdSelector } from '@/features/server/channels/selectors';
 import { useRoles } from '@/features/server/roles/hooks';
-import { useUsers } from '@/features/server/users/hooks';
 import type { IRootState } from '@/features/store';
 import { LocalStorageKey } from '@/helpers/storage';
 import { getTRPCClient } from '@/lib/trpc';
@@ -51,7 +50,7 @@ type TRightSidebarProps = {
 const RightSidebar = memo(
   ({ className, isOpen = true }: TRightSidebarProps) => {
     const { t } = useTranslation('sidebar');
-    const users = useUsers();
+    const users = useSelector((state: IRootState) => state.server.users);
     const roles = useRoles();
     const selectedChannelId = useSelector((state: IRootState) =>
       selectedChannelIdSelector(state)
@@ -132,9 +131,11 @@ const RightSidebar = memo(
                 <div className="space-y-3">
                   {statusGroup.roleGroups.map((group) => (
                     <div key={group.key} className="space-y-1">
-                      <div className="px-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/80">
-                        {group.title} — {group.users.length}
-                      </div>
+                      {group.showTitle !== false && (
+                        <div className="px-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/80">
+                          {group.title} — {group.users.length}
+                        </div>
+                      )}
                       {group.users.map((user) => (
                         <User
                           key={user.id}

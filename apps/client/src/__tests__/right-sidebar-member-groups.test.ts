@@ -26,7 +26,7 @@ const user = (overrides: Record<string, unknown>) =>
   }) as never;
 
 describe('right-sidebar member grouping', () => {
-  test('matches desktop ordering: online first, role weight next, default role fallback last', () => {
+  test('matches desktop ordering: online role groups first, offline as one unsorted list', () => {
     const roles = [
       role({ id: 1, name: 'Owner', weight: 0 }),
       role({ id: 2, name: 'Guest', weight: 50 }),
@@ -39,14 +39,15 @@ describe('right-sidebar member grouping', () => {
         roleIds: [1],
         status: UserStatus.ONLINE
       }),
-      user({ id: 2, name: 'Hermes', roleIds: [1], status: UserStatus.OFFLINE }),
-      user({ id: 3, name: 'Flo', roleIds: [], status: UserStatus.OFFLINE }),
+      user({ id: 2, name: 'Zulu', roleIds: [1], status: UserStatus.OFFLINE }),
+      user({ id: 3, name: 'Alpha', roleIds: [], status: UserStatus.OFFLINE }),
       user({
         id: 4,
         name: 'GuestUser',
         roleIds: [2, 3],
-        status: UserStatus.OFFLINE
-      })
+        status: UserStatus.ONLINE
+      }),
+      user({ id: 5, name: 'MemberUser', roleIds: [], status: UserStatus.IDLE })
     ];
 
     const groups = groupUsersByStatusAndRole(
@@ -58,18 +59,21 @@ describe('right-sidebar member grouping', () => {
     );
 
     expect(groups.map((group) => `${group.title}:${group.usersCount}`)).toEqual(
-      ['Online:1', 'Offline:3']
+      ['Online:3', 'Offline:2']
     );
     expect(
       groups[0].roleGroups.map(
-        (group) => `${group.title}:${group.users.length}`
+        (group) => `${group.title}:${group.users.length}:${group.showTitle}`
       )
-    ).toEqual(['Owner:1']);
+    ).toEqual(['Owner:1:true', 'Guest:1:true', 'Member:1:true']);
     expect(
       groups[1].roleGroups.map(
-        (group) => `${group.title}:${group.users.length}`
+        (group) => `${group.title}:${group.users.length}:${group.showTitle}`
       )
-    ).toEqual(['Owner:1', 'Guest:1', 'Member:1']);
-    expect(groups[1].roleGroups[2].users[0].name).toBe('Flo');
+    ).toEqual(['Offline:2:false']);
+    expect(groups[1].roleGroups[0].users.map((entry) => entry.name)).toEqual([
+      'Zulu',
+      'Alpha'
+    ]);
   });
 });

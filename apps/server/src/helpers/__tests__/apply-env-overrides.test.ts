@@ -118,6 +118,21 @@ describe('applyEnvOverrides', () => {
     expect(config.server.port).toBe(4991);
   });
 
+  test('parses comma-separated env values for array defaults', () => {
+    setEnv('TEST_PROXIES', '127.0.0.1, ::1, 172.19.0.0/16');
+
+    const config = { security: { trustedProxies: [] as string[] } };
+    const overridesMap = { 'security.trustedProxies': 'TEST_PROXIES' };
+
+    const result = applyEnvOverrides(config, overridesMap);
+
+    expect(result.security.trustedProxies).toEqual([
+      '127.0.0.1',
+      '::1',
+      '172.19.0.0/16'
+    ]);
+  });
+
   test('parses JSON array values', () => {
     setEnv('TEST_ITEMS', '[1,2,3]');
 

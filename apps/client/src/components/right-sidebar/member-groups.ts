@@ -9,6 +9,7 @@ import {
 export type TMemberRoleGroup = {
   key: string;
   title: string;
+  showTitle?: boolean;
   users: TJoinedPublicUser[];
 };
 
@@ -144,23 +145,34 @@ export const groupUsersByStatusAndRole = (
   const onlineUsers = filtered.filter(isOnlineMember);
   const offlineUsers = filtered.filter((user) => !isOnlineMember(user));
 
-  return [
-    {
-      key: 'online' as const,
+  const groups: TMemberStatusGroup[] = [];
+
+  if (onlineUsers.length > 0) {
+    groups.push({
+      key: 'online',
       title: onlineTitle,
-      users: onlineUsers
-    },
-    {
-      key: 'offline' as const,
+      usersCount: onlineUsers.length,
+      roleGroups: groupUsersByRole(onlineUsers, roles, fallbackTitle).map(
+        (group) => ({ ...group, showTitle: true })
+      )
+    });
+  }
+
+  if (offlineUsers.length > 0) {
+    groups.push({
+      key: 'offline',
       title: offlineTitle,
-      users: offlineUsers
-    }
-  ]
-    .filter((group) => group.users.length > 0)
-    .map((group) => ({
-      key: group.key,
-      title: group.title,
-      usersCount: group.users.length,
-      roleGroups: groupUsersByRole(group.users, roles, fallbackTitle)
-    }));
+      usersCount: offlineUsers.length,
+      roleGroups: [
+        {
+          key: 'offline-members',
+          title: offlineTitle,
+          showTitle: false,
+          users: offlineUsers
+        }
+      ]
+    });
+  }
+
+  return groups;
 };

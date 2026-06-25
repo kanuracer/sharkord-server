@@ -28,10 +28,22 @@ const applyEnvOverrides = <T>(
         continue;
       }
 
+      const existingValue = current[finalKey];
+      let parsedValue: unknown;
+
       try {
-        current[finalKey] = JSON.parse(envValue!);
+        parsedValue = JSON.parse(envValue!);
       } catch {
-        current[finalKey] = envValue;
+        parsedValue = envValue;
+      }
+
+      if (Array.isArray(existingValue) && typeof parsedValue === 'string') {
+        current[finalKey] = parsedValue
+          .split(',')
+          .map((entry) => entry.trim())
+          .filter(Boolean);
+      } else {
+        current[finalKey] = parsedValue;
       }
     }
   }
