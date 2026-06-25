@@ -7,13 +7,20 @@ const read = (path: string) => readFileSync(join(root, path), 'utf8');
 
 describe('security IP rules admin UI source contract', () => {
   test('webclient exposes Security tab backed by security router routes', () => {
-    const settings = read('components/server-screens/server-settings/index.tsx');
-    const security = read('components/server-screens/server-settings/security/index.tsx');
+    const settings = read(
+      'components/server-screens/server-settings/index.tsx'
+    );
+    const security = read(
+      'components/server-screens/server-settings/security/index.tsx'
+    );
     const hooks = read('features/server/admin/hooks.ts');
 
     expect(settings).toContain("import { Security } from './security'");
     expect(settings).toContain('value="security"');
     expect(settings).toContain("t('securityTab')");
+    expect(settings).toContain('canManageSecurity');
+    expect(settings).toContain("if (canManageSecurity) return 'security'");
+    expect(settings).toContain('flex h-auto w-full flex-wrap');
     expect(settings).toContain('<Security />');
 
     expect(hooks).toContain('useAdminSecurity');

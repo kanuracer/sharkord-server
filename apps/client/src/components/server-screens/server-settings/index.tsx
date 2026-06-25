@@ -20,24 +20,26 @@ type TServerSettingsProps = TServerScreenBaseProps;
 const ServerSettings = memo(({ close }: TServerSettingsProps) => {
   const { t } = useTranslation('settings');
   const can = useCan();
+  const canManageSecurity =
+    can(Permission.MANAGE_USERS) || can(Permission.MANAGE_SETTINGS);
 
   const defaultTab = useMemo(() => {
+    if (canManageSecurity) return 'security';
     if (can(Permission.MANAGE_SETTINGS)) return 'general';
     if (can(Permission.MANAGE_ROLES)) return 'roles';
     if (can(Permission.MANAGE_EMOJIS)) return 'emojis';
     if (can(Permission.MANAGE_STORAGE)) return 'storage';
     if (can(Permission.MANAGE_USERS)) return 'users';
-    if (can(Permission.MANAGE_USERS)) return 'security';
     if (can(Permission.MANAGE_INVITES)) return 'invites';
     if (can(Permission.MANAGE_UPDATES)) return 'updates';
     return 'general';
-  }, [can]);
+  }, [can, canManageSecurity]);
 
   return (
     <ServerScreenLayout close={close} title={t('serverSettingsTitle')}>
       <div className="mx-auto max-w-4xl">
         <Tabs defaultValue={defaultTab} className="w-full">
-          <TabsList className="mb-6">
+          <TabsList className="mb-6 flex h-auto w-full flex-wrap justify-start gap-1">
             <TabsTrigger
               value="general"
               disabled={!can(Permission.MANAGE_SETTINGS)}
@@ -62,7 +64,7 @@ const ServerSettings = memo(({ close }: TServerSettingsProps) => {
             <TabsTrigger value="users" disabled={!can(Permission.MANAGE_USERS)}>
               {t('usersTab')}
             </TabsTrigger>
-            <TabsTrigger value="security" disabled={!can(Permission.MANAGE_USERS)}>
+            <TabsTrigger value="security" disabled={!canManageSecurity}>
               {t('securityTab')}
             </TabsTrigger>
             <TabsTrigger
@@ -100,7 +102,7 @@ const ServerSettings = memo(({ close }: TServerSettingsProps) => {
             {can(Permission.MANAGE_USERS) && <Users />}
           </TabsContent>
           <TabsContent value="security" className="space-y-6">
-            {can(Permission.MANAGE_USERS) && <Security />}
+            {canManageSecurity && <Security />}
           </TabsContent>
           <TabsContent value="invites" className="space-y-6">
             {can(Permission.MANAGE_INVITES) && <Invites />}

@@ -7,17 +7,12 @@ import type { IRootState } from '@/features/store';
 import { LocalStorageKey } from '@/helpers/storage';
 import { getTRPCClient } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
-import {
-  DELETED_USER_IDENTITY_AND_NAME,
-  OWNER_ROLE_ID,
-  UserStatus,
-  type TJoinedPublicUser,
-  type TJoinedRole
-} from '@sharkord/shared';
+import { DELETED_USER_IDENTITY_AND_NAME } from '@sharkord/shared';
 import { memo, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSelector } from 'react-redux';
 import { UserPopover } from '../user-popover';
+import { groupUsersByStatusAndRole } from './member-groups';
 
 const MAX_USERS_TO_SHOW = 100;
 const MIN_WIDTH = 180;
@@ -28,125 +23,6 @@ type TUserProps = {
   userId: number;
   name: string;
   banned: boolean;
-};
-
-type TMemberRoleGroup = {
-  key: string;
-  title: string;
-  users: TJoinedPublicUser[];
-};
-
-type TMemberStatusGroup = {
-  key: 'online' | 'offline';
-  title: string;
-  usersCount: number;
-  roleGroups: TMemberRoleGroup[];
-};
-
-const roleSortRank = (role: TJoinedRole) => {
-  if (role.id === OWNER_ROLE_ID) return 0;
-  const weight = Number(role.weight);
-  if (Number.isFinite(weight) && weight >= 0) return weight;
-  return role.isDefault ? 100 : 100;
-};
-
-const isOnlineMember = (user: TJoinedPublicUser) => {
-  const status = user.status ?? UserStatus.OFFLINE;
-  return status === UserStatus.ONLINE || status === UserStatus.IDLE;
-};
-
-const highestSortableRole = (
-  user: TJoinedPublicUser,
-  rolesById: Map<number, TJoinedRole>
-) =>
-  user.roleIds
-    .map((roleId) => rolesById.get(roleId))
-    .filter((role): role is TJoinedRole => Boolean(role))
-    .sort((a, b) => {
-      const rankDiff = roleSortRank(a) - roleSortRank(b);
-      if (rankDiff !== 0) return rankDiff;
-      return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
-    })[0];
-
-const sortUsersByRole = (users: TJoinedPublicUser[], roles: TJoinedRole[]) => {
-  const rolesById = new Map(roles.map((role) => [role.id, role]));
-
-  return [...users].sort((a, b) => {
-    const aRole = highestSortableRole(a, rolesById);
-    const bRole = highestSortableRole(b, rolesById);
-    const aRank = aRole ? roleSortRank(aRole) : 90;
-    const bRank = bRole ? roleSortRank(bRole) : 90;
-
-    if (aRank !== bRank) return aRank - bRank;
-
-    const roleNameDiff = (aRole?.name ?? '').localeCompare(
-      bRole?.name ?? '',
-      undefined,
-      { sensitivity: 'base' }
-    );
-    if (roleNameDiff !== 0) return roleNameDiff;
-
-    const userNameDiff = a.name.localeCompare(b.name, undefined, {
-      sensitivity: 'base'
-    });
-    if (userNameDiff !== 0) return userNameDiff;
-
-    return a.id - b.id;
-  });
-};
-
-const groupUsersByRole = (
-  users: TJoinedPublicUser[],
-  roles: TJoinedRole[],
-  fallbackTitle: string
-): TMemberRoleGroup[] => {
-  const rolesById = new Map(roles.map((role) => [role.id, role]));
-  const groups = new Map<string, TMemberRoleGroup>();
-
-  for (const user of sortUsersByRole(users, roles)) {
-    const role = highestSortableRole(user, rolesById);
-    const key = role ? `role-${role.id}` : 'members';
-    const title = role ? role.name : fallbackTitle;
-
-    if (!groups.has(key)) {
-      groups.set(key, { key, title, users: [] });
-    }
-
-    groups.get(key)?.users.push(user);
-  }
-
-  return [...groups.values()];
-};
-
-const groupUsersByStatusAndRole = (
-  users: TJoinedPublicUser[],
-  roles: TJoinedRole[],
-  fallbackTitle: string,
-  onlineTitle: string,
-  offlineTitle: string
-): TMemberStatusGroup[] => {
-  const onlineUsers = users.filter(isOnlineMember);
-  const offlineUsers = users.filter((user) => !isOnlineMember(user));
-
-  return [
-    {
-      key: 'online' as const,
-      title: onlineTitle,
-      users: onlineUsers
-    },
-    {
-      key: 'offline' as const,
-      title: offlineTitle,
-      users: offlineUsers
-    }
-  ]
-    .filter((group) => group.users.length > 0)
-    .map((group) => ({
-      key: group.key,
-      title: group.title,
-      usersCount: group.users.length,
-      roleGroups: groupUsersByRole(group.users, roles, fallbackTitle)
-    }));
 };
 
 const User = memo(({ userId, name, banned }: TUserProps) => {

@@ -3,7 +3,11 @@ import { and, desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../../db';
 import { ipSecurityEvents, ipSecurityRules } from '../../db/schema';
-import { findMatchingIpRule, isRuleActive, normalizeIpRange } from '../../utils/ip-security';
+import {
+  findMatchingIpRule,
+  isRuleActive,
+  normalizeIpRange
+} from '../../utils/ip-security';
 import { protectedProcedure, t } from '../../utils/trpc';
 
 const zIpRuleInput = z.object({
@@ -12,7 +16,10 @@ const zIpRuleInput = z.object({
     .trim()
     .min(1)
     .max(128)
-    .refine((value) => Boolean(normalizeIpRange(value)), 'Invalid IP/CIDR range'),
+    .refine(
+      (value) => Boolean(normalizeIpRange(value)),
+      'Invalid IP/CIDR range'
+    ),
   reason: z.string().trim().max(240).optional(),
   expiresAt: z.number().int().positive().nullable().optional()
 });
@@ -24,12 +31,23 @@ const zUnblockInput = z.object({
     .trim()
     .min(1)
     .max(128)
-    .refine((value) => Boolean(normalizeIpRange(value)), 'Invalid IP/CIDR range')
+    .refine(
+      (value) => Boolean(normalizeIpRange(value)),
+      'Invalid IP/CIDR range'
+    )
 });
 
 const requireSecurityAdmin = async (ctx: {
+  hasPermission: (permission: Permission) => Promise<boolean>;
   needsPermission: (permission: Permission) => Promise<void>;
 }) => {
+  if (
+    (await ctx.hasPermission(Permission.MANAGE_USERS)) ||
+    (await ctx.hasPermission(Permission.MANAGE_SETTINGS))
+  ) {
+    return;
+  }
+
   await ctx.needsPermission(Permission.MANAGE_USERS);
 };
 
@@ -123,12 +141,16 @@ const removeIpRuleRoute = protectedProcedure
       .where(eq(ipSecurityRules.id, input.ruleId))
       .get();
 
-    await db.delete(ipSecurityRules).where(eq(ipSecurityRules.id, input.ruleId)).run();
+    await db
+      .delete(ipSecurityRules)
+      .where(eq(ipSecurityRules.id, input.ruleId))
+      .run();
 
     if (rule) {
       await insertSecurityEvent({
         ip: rule.ipRange,
-        event: rule.kind === 'allow' ? 'ip_allowlist_removed' : 'ip_block_removed',
+        event:
+          rule.kind === 'allow' ? 'ip_allowlist_removed' : 'ip_block_removed',
         reason: rule.reason,
         metadata: { ruleId: rule.id, removedBy: ctx.userId }
       });
@@ -152,7 +174,10 @@ const unblockIpRoute = protectedProcedure
       await db
         .delete(ipSecurityRules)
         .where(
-          and(eq(ipSecurityRules.id, rule.id), eq(ipSecurityRules.kind, 'block'))
+          and(
+            eq(ipSecurityRules.id, rule.id),
+            eq(ipSecurityRules.kind, 'block')
+          )
         )
         .run();
     }
@@ -160,12 +185,17 @@ const unblockIpRoute = protectedProcedure
     await insertSecurityEvent({
       ip,
       event: 'ip_unblocked',
-      metadata: { removedRuleIds: matching.map((rule) => rule.id), removedBy: ctx.userId }
+      metadata: {
+        removedRuleIds: matching.map((rule) => rule.id),
+        removedBy: ctx.userId
+      }
     });
   });
 
 const getSecurityEventsRoute = protectedProcedure
-  .input(z.object({ limit: z.number().int().min(1).max(200).optional() }).optional())
+  .input(
+    z.object({ limit: z.number().int().min(1).max(200).optional() }).optional()
+  )
   .query(async ({ input, ctx }) => {
     await requireSecurityAdmin(ctx);
 
@@ -185,4 +215,4 @@ const securityRouter = t.router({
   getSecurityEvents: getSecurityEventsRoute
 });
 
-export { securityRouter, insertSecurityEvent };
+export { insertSecurityEvent, securityRouter };
