@@ -33,8 +33,10 @@ import {
   useRef,
   useState,
   type Ref,
-  type RefObject
+  type RefObject,
+  type CSSProperties
 } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { DEFAULT_MAX_HEIGHT_VH } from '../channel-view/text/helpers';
 import { useMessageAuthorName } from '../channel-view/text/hooks/use-message-author-name';
@@ -95,6 +97,8 @@ const MessageCompose = memo(
     const [gifQuery, setGifQuery] = useState('');
     const [gifLoading, setGifLoading] = useState(false);
     const [gifResults, setGifResults] = useState<Array<{ id: string; title: string; url: string; previewUrl: string }>>([]);
+    const gifButtonRef = useRef<HTMLButtonElement | null>(null);
+    const [gifMenuStyle, setGifMenuStyle] = useState<CSSProperties | null>(null);
     const can = useCan();
     const channelCan = useChannelCan(channelId);
     const channel = useChannelById(channelId);
@@ -174,6 +178,23 @@ const MessageCompose = memo(
       await processFiles([new File([blob], `${safeName}.gif`, { type: 'image/gif' })]);
       setGifOpen(false);
     }, [processFiles]);
+
+    const toggleGifMenu = useCallback((next?: boolean) => {
+      const open = next ?? !gifOpen;
+      setGifOpen(open);
+      if (open) {
+        const rect = gifButtonRef.current?.getBoundingClientRect();
+        const width = 360;
+        setGifMenuStyle({
+          position: 'fixed',
+          width,
+          left: rect ? Math.max(12, Math.min(window.innerWidth - width - 12, rect.right - width)) : Math.max(12, window.innerWidth - width - 24),
+          top: rect ? Math.max(12, rect.top - 440) : 80,
+          zIndex: 99999
+        });
+        if (!gifResults.length) void searchGifs(gifQuery);
+      }
+    }, [gifOpen, gifResults.length, gifQuery, searchGifs]);
 
     useFileAwareHeight({
       containerRef,
@@ -350,17 +371,18 @@ const MessageCompose = memo(
 
             <div className="relative">
               <Button
+                ref={gifButtonRef}
                 size="icon"
                 variant="ghost"
                 type="button"
                 disabled={uploading || !canUploadFiles}
-                onClick={(event) => { event.preventDefault(); event.stopPropagation(); const next = !gifOpen; setGifOpen(next); if (next && !gifResults.length) void searchGifs(gifQuery); }}
+                onClick={(event) => { event.preventDefault(); event.stopPropagation(); toggleGifMenu(); }}
                 title="GIFs"
               >
                 <ImageIcon className="h-4 w-4" />
               </Button>
-              {gifOpen && (
-                <div className="fixed bottom-20 right-6 z-[9999] w-80 rounded-md border border-border bg-background p-2 shadow-2xl" onMouseDown={(event) => event.stopPropagation()} onClick={(event) => event.stopPropagation()}>
+              {gifOpen && typeof document !== 'undefined' ? createPortal(
+                <div className="rounded-md border border-border bg-background p-2 shadow-2xl" style={gifMenuStyle ?? undefined} onMouseDown={(event) => event.stopPropagation()} onClick={(event) => event.stopPropagation()}>
                   <div className="flex gap-2">
                     <input className="min-w-0 flex-1 rounded border border-border bg-transparent px-2 py-1 text-sm" value={gifQuery} onChange={(event) => setGifQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); void searchGifs(gifQuery); } }} placeholder="GIF suchen…" />
                     <Button size="sm" type="button" disabled={gifLoading} onClick={() => void searchGifs(gifQuery)}>{gifLoading ? '...' : 'Suchen'}</Button>
@@ -369,8 +391,8 @@ const MessageCompose = memo(
                     {gifResults.map((gif) => <button type="button" key={gif.id} className="overflow-hidden rounded bg-muted" onClick={(event) => { event.preventDefault(); void attachGif(gif); }} title={gif.title}><img src={gif.previewUrl} alt={gif.title} className="h-24 w-full object-cover" loading="lazy" /></button>)}
                   </div>
                   <div className="mt-1 text-[10px] text-muted-foreground">GIFs von Tenor</div>
-                </div>
-              )}
+                </div>, document.body
+              ) : null}
             </div>
             <EmojiPicker
               onEmojiSelect={(emoji) => tiptapRef.current?.insertEmoji(emoji)}

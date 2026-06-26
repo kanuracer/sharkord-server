@@ -46,7 +46,8 @@ export enum ActivityLogType {
   EXECUTED_PLUGIN_ACTION = 'EXECUTED_PLUGIN_ACTION',
   PLUGIN_TOGGLED = 'PLUGIN_TOGGLED',
   // -------------------- MESSAGES --------------------
-  TOGGLED_MESSAGE_PIN = 'TOGGLED_MESSAGE_PIN'
+  TOGGLED_MESSAGE_PIN = 'TOGGLED_MESSAGE_PIN',
+  MESSAGE_DELETED = 'MESSAGE_DELETED'
 }
 
 export type TActivityLogDetailsMap = {
@@ -208,6 +209,14 @@ export type TActivityLogDetailsMap = {
     channelId: number;
     pinned: boolean;
     pinnedBy: number;
+  };
+  [ActivityLogType.MESSAGE_DELETED]: {
+    messageId: number;
+    channelId: number;
+    deletedBy: number;
+    targetUserId?: number | null;
+    parentMessageId?: number | null;
+    fileCount: number;
   };
 };
 

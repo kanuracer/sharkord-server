@@ -62,25 +62,20 @@ const FileCard = ({
 
   if (isInlineImage && href) {
     return (
-      <div className="group max-w-2xl overflow-hidden rounded-lg border border-border bg-background/70">
-        <a href={href} target="_blank" rel="noreferrer" className="block bg-black/20">
-          <img
-            src={href}
-            alt={name}
-            loading="lazy"
-            className="max-h-[520px] w-auto max-w-full object-contain"
-          />
-        </a>
-        <div className="flex items-center justify-between gap-3 px-2 py-1.5 text-xs text-muted-foreground">
-          <span className="min-w-0 truncate" title={name}>{name}</span>
-          <span className="shrink-0">{filesize(size)}</span>
-          {onRemove && (
-            <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={onRemoveClick}>
-              <Trash className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-      </div>
+      <a
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+        className="block max-w-2xl overflow-hidden rounded-lg bg-black/20"
+        title={name}
+      >
+        <img
+          src={href}
+          alt={name}
+          loading="lazy"
+          className="max-h-[520px] w-auto max-w-full object-contain"
+        />
+      </a>
     );
   }
 

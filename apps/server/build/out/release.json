@@ -1,30 +1,30 @@
 {
-  "version": "0.0.24-kr.5",
-  "releaseDate": "2026-06-26T12:47:11.357Z",
+  "version": "0.0.24-kr.6",
+  "releaseDate": "2026-06-26T13:05:43.530Z",
   "artifacts": [
     {
       "name": "sharkord-linux-x64",
       "target": "linux-x64",
       "size": 115034240,
-      "checksum": "b47734ba13ccdd807a64f0c27650be67fb002e1a53cc27d39205c356b32dfeb5"
+      "checksum": "e3c3716a9a043867284831fd94de03336cd4cfda77ec6ccec782cb0a7db21c5d"
     },
     {
       "name": "sharkord-linux-arm64",
       "target": "linux-arm64",
       "size": 113551504,
-      "checksum": "e18cfb1950fd1d2f0aa11167f0b166030612c4319006ee0af4422d11347c241d"
+      "checksum": "3cbcc1cb0d57346b1251f23084fb99a38c5ee2c36192ee82120d0f55eea7bea7"
     },
     {
       "name": "sharkord-windows-x64.exe",
       "target": "windows-x64",
       "size": 114185728,
-      "checksum": "5781035f07c2a49f0831382fe8f1d8bea1eca34325906bf7dfdb050b3ac0b6f3"
+      "checksum": "88adfb4f57b27c22346690cd2fde4541abd23787b58c5dba4d28eab7cc6f3f78"
     },
     {
       "name": "sharkord-macos-arm64",
       "target": "darwin-arm64",
       "size": 80965346,
-      "checksum": "dc87a855fdea0c176adca325d9686b7bf41a383498e922180d27ccd1fbd284b9"
+      "checksum": "43e5a1f787e6dc02540cd84b90cdf1ad7edb2d181166ae2b3bd12ebb33fc0104"
     }
   ]
 }

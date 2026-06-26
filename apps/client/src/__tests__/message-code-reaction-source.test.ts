@@ -33,7 +33,9 @@ describe('message code block and reaction fixes', () => {
     expect(compose).toContain('api.tenor.com/v1/search');
     expect(compose).toContain('GIFs von Tenor');
     expect(compose).toContain('attachGif');
-    expect(compose).toContain('fixed bottom-20 right-6 z-[9999]');
+    expect(compose).toContain('createPortal');
+    expect(compose).toContain('gifButtonRef.current?.getBoundingClientRect');
+    expect(compose).toContain('zIndex: 99999');
     expect(compose).toContain('type="button" disabled={gifLoading}');
     expect(compose).not.toContain('<form className="flex gap-2"');
     expect(uploadHook).toContain('processFiles');
@@ -48,5 +50,6 @@ describe('message code block and reaction fixes', () => {
     expect(fileCard).toContain('isInlineImage');
     expect(fileCard).toContain('max-h-[520px]');
     expect(fileCard).toContain('<img');
+    expect(fileCard).not.toContain('flex items-center justify-between gap-3 px-2 py-1.5');
   });
 });

@@ -1,9 +1,10 @@
-import { ChannelPermission, Permission } from '@sharkord/shared';
+import { ActivityLogType, ChannelPermission, Permission } from '@sharkord/shared';
 import { describe, expect, test } from 'bun:test';
 import { and, eq } from 'drizzle-orm';
 import { initTest, uploadFile } from '../../__tests__/helpers';
 import { tdb } from '../../__tests__/setup';
 import {
+  activityLog,
   files,
   messageFiles,
   rolePermissions,
@@ -1260,6 +1261,36 @@ describe('messages router', () => {
     expect(editedMessage!.updatedAt).toBeGreaterThan(
       originalUpdatedAt ?? editedMessage!.createdAt
     );
+  });
+
+
+
+  test('should write audit log when deleting a text channel message', async () => {
+    const { caller } = await initTest(1);
+
+    const messageId = await caller.messages.send({
+      channelId: 1,
+      content: 'Message that should be audited on delete',
+      files: []
+    });
+
+    await caller.messages.delete({ messageId });
+    await new Promise((resolve) => setTimeout(resolve, 25));
+
+    const row = await tdb
+      .select()
+      .from(activityLog)
+      .where(eq(activityLog.type, ActivityLogType.MESSAGE_DELETED))
+      .get();
+
+    expect(row?.userId).toBe(1);
+    expect(row?.details).toMatchObject({
+      messageId,
+      channelId: 1,
+      deletedBy: 1,
+      targetUserId: 1,
+      fileCount: 0
+    });
   });
 
   test('should rate limit excessive send message attempts', async () => {

@@ -1,4 +1,4 @@
-import { Permission } from '@sharkord/shared';
+import { ActivityLogType, Permission } from '@sharkord/shared';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../../db';
@@ -8,6 +8,7 @@ import { getFilesByMessageId } from '../../db/queries/files';
 import { messages } from '../../db/schema';
 import { assertChannelAccess } from '../../helpers/assert-channel-access';
 import { eventBus } from '../../plugins/event-bus';
+import { enqueueActivityLog } from '../../queues/activity-log';
 import { invariant } from '../../utils/invariant';
 import { protectedProcedure } from '../../utils/trpc';
 
@@ -74,6 +75,19 @@ const deleteMessageRoute = protectedProcedure
     }
 
     publishMessage(input.messageId, targetMessage.channelId, 'delete');
+
+    enqueueActivityLog({
+      type: ActivityLogType.MESSAGE_DELETED,
+      userId: ctx.user.id,
+      details: {
+        messageId: input.messageId,
+        channelId: targetMessage.channelId,
+        deletedBy: ctx.user.id,
+        targetUserId: targetMessage.userId,
+        parentMessageId: targetMessage.parentMessageId,
+        fileCount: files.length
+      }
+    });
 
     if (targetMessage.parentMessageId) {
       publishReplyCount(targetMessage.parentMessageId, targetMessage.channelId);
