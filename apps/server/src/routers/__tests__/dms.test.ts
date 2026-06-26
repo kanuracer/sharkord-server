@@ -254,7 +254,11 @@ describe('dms router', () => {
         channelAccessMembers: true,
         customUserStatus: true,
         notificationSoundControls: true,
-        securityIpRules: true
+        securityIpRules: true,
+        gifAttachments: true,
+        messageReactions: true,
+        securityEventsClear: true,
+        securityAuditLog: true
       }
     });
   });

@@ -32,7 +32,11 @@ const capabilitiesRoute = protectedProcedure.query(() => ({
     channelAccessMembers: true,
     customUserStatus: true,
     notificationSoundControls: true,
-    securityIpRules: true
+    securityIpRules: true,
+    securityEventsClear: true,
+    securityAuditLog: true,
+    messageReactions: true,
+    gifAttachments: true
   }
 }));
 

@@ -1,8 +1,14 @@
-import { Permission } from '@sharkord/shared';
-import { and, desc, eq } from 'drizzle-orm';
+import { ActivityLogType, Permission } from '@sharkord/shared';
+import { and, count, desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../../db';
-import { ipSecurityEvents, ipSecurityRules } from '../../db/schema';
+import {
+  activityLog,
+  ipSecurityEvents,
+  ipSecurityRules,
+  users
+} from '../../db/schema';
+import { enqueueActivityLog } from '../../queues/activity-log';
 import {
   findMatchingIpRule,
   isRuleActive,
@@ -192,10 +198,12 @@ const unblockIpRoute = protectedProcedure
     });
   });
 
+const zLimitedListInput = z
+  .object({ limit: z.number().int().min(1).max(200).optional() })
+  .optional();
+
 const getSecurityEventsRoute = protectedProcedure
-  .input(
-    z.object({ limit: z.number().int().min(1).max(200).optional() }).optional()
-  )
+  .input(zLimitedListInput)
   .query(async ({ input, ctx }) => {
     await requireSecurityAdmin(ctx);
 
@@ -206,13 +214,67 @@ const getSecurityEventsRoute = protectedProcedure
       .limit(input?.limit ?? 100);
   });
 
+const clearSecurityEventsRoute = protectedProcedure.mutation(async ({ ctx }) => {
+  await requireSecurityAdmin(ctx);
+
+  const [{ total = 0 } = { total: 0 }] = await db
+    .select({ total: count() })
+    .from(ipSecurityEvents);
+
+  await db.delete(ipSecurityEvents).run();
+
+  await insertSecurityEvent({
+    ip: 'system',
+    event: 'security_events_cleared',
+    reason: 'Security events cleared by admin',
+    metadata: { clearedBy: ctx.userId, clearedCount: total }
+  });
+
+  enqueueActivityLog({
+    type: ActivityLogType.EDIT_SERVER_SETTINGS,
+    userId: ctx.userId,
+    details: {
+      values: { securityEventsCleared: total }
+    }
+  });
+
+  return { cleared: total };
+});
+
+const getAuditLogRoute = protectedProcedure
+  .input(zLimitedListInput)
+  .query(async ({ input, ctx }) => {
+    await requireSecurityAdmin(ctx);
+
+    return db
+      .select({
+        id: activityLog.id,
+        userId: activityLog.userId,
+        type: activityLog.type,
+        details: activityLog.details,
+        ip: activityLog.ip,
+        createdAt: activityLog.createdAt,
+        user: {
+          id: users.id,
+          name: users.name,
+          identity: users.identity
+        }
+      })
+      .from(activityLog)
+      .leftJoin(users, eq(activityLog.userId, users.id))
+      .orderBy(desc(activityLog.createdAt))
+      .limit(input?.limit ?? 100);
+  });
+
 const securityRouter = t.router({
   getIpRules: getIpRulesRoute,
   addIpAllowlist: addIpAllowlistRoute,
   addIpBlock: addIpBlockRoute,
   removeIpRule: removeIpRuleRoute,
   unblockIp: unblockIpRoute,
-  getSecurityEvents: getSecurityEventsRoute
+  getSecurityEvents: getSecurityEventsRoute,
+  clearSecurityEvents: clearSecurityEventsRoute,
+  getAuditLog: getAuditLogRoute
 });
 
 export { insertSecurityEvent, securityRouter };

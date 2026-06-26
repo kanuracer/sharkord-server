@@ -16,7 +16,7 @@ Current public image tags:
 
 | Tag | Purpose |
 | --- | --- |
-| `ghcr.io/kanuracer/sharkord-server:0.0.24` | Current stable production tag |
+| `ghcr.io/kanuracer/sharkord-server:0.0.24-kr.1` | Current stable production tag |
 | `ghcr.io/kanuracer/sharkord-server:latest` | Current stable image, moves when a new stable release is published |
 | `ghcr.io/kanuracer/sharkord-server:kr-main` | Current `kr-main` branch image |
 | `ghcr.io/kanuracer/sharkord-server:latest-beta` | Current beta/prerelease image |
@@ -110,7 +110,7 @@ docker run \
   -e SHARKORD_WEBRTC_PORT=40000 \
   -e SHARKORD_WEBRTC_ANNOUNCED_ADDRESS=your.domain.example \
   -v ./data:/home/bun/.config/sharkord \
-  ghcr.io/kanuracer/sharkord-server:0.0.24
+  ghcr.io/kanuracer/sharkord-server:0.0.24-kr.1
 ```
 
 Open:
@@ -131,7 +131,7 @@ Example for a reverse-proxy Docker network plus direct WebRTC port exposure:
 ```yaml
 services:
   sharkord:
-    image: ghcr.io/kanuracer/sharkord-server:0.0.24
+    image: ghcr.io/kanuracer/sharkord-server:0.0.24-kr.1
     container_name: sharkord
     restart: unless-stopped
     ports:
@@ -220,7 +220,7 @@ curl -fsS http://127.0.0.1:4991/info
 Recommended production pinning:
 
 ```yaml
-image: ghcr.io/kanuracer/sharkord-server:0.0.24
+image: ghcr.io/kanuracer/sharkord-server:0.0.24-kr.1
 ```
 
 Use `latest` only if you intentionally want to track the newest stable fork image.
@@ -288,7 +288,7 @@ The package should be public. If pull still fails:
 
 ```bash
 docker logout ghcr.io
-docker pull ghcr.io/kanuracer/sharkord-server:0.0.24
+docker pull ghcr.io/kanuracer/sharkord-server:0.0.24-kr.1
 ```
 
 If the package is private again, authenticate the Docker host with a token that has package read permission:

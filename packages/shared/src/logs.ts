@@ -54,7 +54,7 @@ export type TActivityLogDetailsMap = {
   [ActivityLogType.EDIT_SERVER_SETTINGS]: {
     values: Partial<{
       [K in keyof TSettings]: any;
-    }>;
+    }> & Record<string, any>;
   };
   // -------------------- USERS --------------------
   [ActivityLogType.USER_KICKED]: {
