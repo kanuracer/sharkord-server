@@ -605,11 +605,23 @@ export const useAdminUsers = () => {
   };
 };
 
+
+type TSecurityAuditEntry = {
+  id: number;
+  userId: number | null;
+  type: string;
+  details: unknown;
+  ip: string | null;
+  createdAt: number;
+  user?: { id: number; name: string; identity: string } | null;
+};
+
 export const useAdminSecurity = () => {
   const [loading, setLoading] = useState(true);
   const [allowed, setAllowed] = useState<TSecurityIpRule[]>([]);
   const [blocked, setBlocked] = useState<TSecurityIpRule[]>([]);
   const [events, setEvents] = useState<TSecurityEvent[]>([]);
+  const [auditLog, setAuditLog] = useState<TSecurityAuditEntry[]>([]);
   const [ipRange, setIpRange] = useState('');
   const [reason, setReason] = useState('');
 
@@ -617,14 +629,16 @@ export const useAdminSecurity = () => {
     setLoading(true);
 
     const trpc = getTRPCClient();
-    const [rules, events] = await Promise.all([
+    const [rules, events, auditLog] = await Promise.all([
       trpc.security.getIpRules.query(),
-      trpc.security.getSecurityEvents.query({ limit: 40 })
+      trpc.security.getSecurityEvents.query({ limit: 40 }),
+      trpc.security.getAuditLog.query({ limit: 40 })
     ]);
 
     setAllowed(rules.allowed as TSecurityIpRule[]);
     setBlocked(rules.blocked as TSecurityIpRule[]);
     setEvents(events as TSecurityEvent[]);
+    setAuditLog(auditLog as TSecurityAuditEntry[]);
     setLoading(false);
   }, []);
 
@@ -675,6 +689,23 @@ export const useAdminSecurity = () => {
     [fetchSecurity]
   );
 
+  const onClearEvents = useCallback(async () => {
+    const confirmed = await requestConfirmation({
+      title: 'Clear security events?',
+      message:
+        'This clears recent IP/security events. IP rules and the audit log stay intact.',
+      confirmLabel: 'Clear events',
+      cancelLabel: 'Cancel'
+    });
+
+    if (!confirmed) return;
+
+    const trpc = getTRPCClient();
+    const result = await trpc.security.clearSecurityEvents.mutate();
+    toast.success(`Cleared ${result.cleared} security event${result.cleared === 1 ? '' : 's'}`);
+    await fetchSecurity();
+  }, [fetchSecurity]);
+
   useEffect(() => {
     fetchSecurity();
   }, [fetchSecurity]);
@@ -683,6 +714,7 @@ export const useAdminSecurity = () => {
     allowed,
     blocked,
     events,
+    auditLog,
     loading,
     ipRange,
     reason,
@@ -692,6 +724,7 @@ export const useAdminSecurity = () => {
     addBlock,
     onUnblockIp,
     onRemoveRule,
+    onClearEvents,
     refetch: fetchSecurity
   };
 };

@@ -3,11 +3,28 @@ import { Element, type DOMNode } from 'html-react-parser';
 import { CommandOverride } from '../overrides/command';
 import { MentionOverride } from '../overrides/mention';
 import { YoutubeOverride } from '../overrides/youtube';
+import { CodeBlock } from './code-block';
 import { getYoutubeInfo } from './helpers';
 
 const serializer = (domNode: DOMNode, messageId: number) => {
   try {
-    if (domNode instanceof Element && domNode.name === 'a') {
+    if (domNode instanceof Element && domNode.name === 'pre') {
+      const codeNode = domNode.children.find(
+        (child) => child instanceof Element && child.name === 'code'
+      ) as Element | undefined;
+      const text = codeNode?.children.map((child: any) => child.data ?? '').join('') ?? '';
+
+      return (
+        <CodeBlock
+          code={text}
+          language={domNode.attribs['data-language'] || codeNode?.attribs?.['data-language']}
+        />
+      );
+    } else if (domNode instanceof Element && domNode.name === 'code') {
+      const text = domNode.children.map((child: any) => child.data ?? '').join('');
+
+      return <CodeBlock code={text} inline />;
+    } else if (domNode instanceof Element && domNode.name === 'a') {
       const href = domNode.attribs.href;
       const isBlockEmbed =
         domNode.attribs['data-sharkord-block-embed'] === 'true';

@@ -20,6 +20,7 @@ const Security = memo(() => {
     allowed,
     blocked,
     events,
+    auditLog,
     loading,
     ipRange,
     reason,
@@ -29,6 +30,7 @@ const Security = memo(() => {
     addBlock,
     onUnblockIp,
     onRemoveRule,
+    onClearEvents,
     refetch
   } = useAdminSecurity();
 
@@ -120,7 +122,12 @@ const Security = memo(() => {
         </section>
 
         <section className="space-y-2">
-          <h3 className="text-sm font-semibold">Recent security events</h3>
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold">Recent security events</h3>
+            <Button variant="outline" onClick={onClearEvents} disabled={!events.length}>
+              Clear events
+            </Button>
+          </div>
           <div className="divide-y rounded-md border">
             {events.length ? (
               events.map((event) => (
@@ -133,6 +140,28 @@ const Security = memo(() => {
               ))
             ) : (
               <p className="p-3 text-sm text-muted-foreground">No security events.</p>
+            )}
+          </div>
+        </section>
+
+        <section className="space-y-2">
+          <h3 className="text-sm font-semibold">Security audit log</h3>
+          <div className="divide-y rounded-md border">
+            {auditLog.length ? (
+              auditLog.map((entry) => (
+                <div key={entry.id} className="grid gap-3 p-3 md:grid-cols-[1fr_1fr_1fr_2fr]">
+                  <span className="font-mono text-sm">{entry.type}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {entry.user?.name || entry.user?.identity || `User ${entry.userId ?? 'system'}`}
+                  </span>
+                  <span className="text-sm text-muted-foreground">{formatDate(entry.createdAt)}</span>
+                  <pre className="max-h-24 overflow-auto rounded bg-muted/60 p-2 text-xs">
+                    {JSON.stringify(entry.details ?? {}, null, 2)}
+                  </pre>
+                </div>
+              ))
+            ) : (
+              <p className="p-3 text-sm text-muted-foreground">No audit log entries.</p>
             )}
           </div>
         </section>

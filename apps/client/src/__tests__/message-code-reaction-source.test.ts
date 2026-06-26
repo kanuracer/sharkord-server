@@ -1,0 +1,26 @@
+import { describe, expect, test } from 'bun:test';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+const root = join(import.meta.dir, '..');
+const read = (path: string) => readFileSync(join(root, path), 'utf8');
+
+describe('message code block and reaction fixes', () => {
+  test('webclient renders highlighted fenced/pre code blocks', () => {
+    const cache = read('components/channel-view/text/renderer/content-cache.ts');
+    const serializer = read('components/channel-view/text/renderer/serializer.tsx');
+    const codeBlock = read('components/channel-view/text/renderer/code-block.tsx');
+
+    expect(cache).toContain('renderFencedCodeBlocks');
+    expect(serializer).toContain('CodeBlock');
+    expect(serializer).toContain("domNode.name === 'pre'");
+    expect(codeBlock).toContain('dangerouslySetInnerHTML');
+    expect(codeBlock).toContain('data-language');
+  });
+
+  test('reaction order uses descending createdAt instead of adding timestamps', () => {
+    const reactions = read('components/channel-view/text/message-reactions.tsx');
+    expect(reactions).toContain('(a, b) => b.createdAt - a.createdAt');
+    expect(reactions).not.toContain('(a, b) => b.createdAt + a.createdAt');
+  });
+});

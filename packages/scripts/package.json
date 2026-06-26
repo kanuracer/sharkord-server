@@ -1,6 +1,6 @@
 {
   "name": "@sharkord/scripts",
-  "version": "0.0.24-kr.1",
+  "version": "0.0.24-kr.2",
   "type": "module",
   "private": true,
   "main": "src/index.ts",

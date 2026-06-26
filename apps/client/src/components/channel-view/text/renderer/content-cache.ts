@@ -6,6 +6,18 @@ import { serializer } from './serializer';
 
 const MAX_CACHE_SIZE = 500;
 
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+
+const renderFencedCodeBlocks = (content: string) =>
+  content.replace(/```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g, (_match, language, code) =>
+    `<pre data-sharkord-code-block="true" data-language="${escapeHtml(language)}"><code>${escapeHtml(code.replace(/<br\s*\/?\>/gi, '\n'))}</code></pre>`
+  );
+
 const parsedMessageCache = new Map<string, ReactNode>();
 const emojiOnlyCache = new Map<string, boolean>();
 
@@ -33,7 +45,7 @@ const getParsedMessageHtml = (message: TJoinedMessage) => {
 
   trimCache(parsedMessageCache);
 
-  const parsed = parse(hoistParagraphBlockEmbeds(message.content ?? ''), {
+  const parsed = parse(hoistParagraphBlockEmbeds(renderFencedCodeBlocks(message.content ?? '')), {
     replace: (domNode: DOMNode) => serializer(domNode, message.id)
   });
 
