@@ -26,7 +26,10 @@
     "MANAGE_UPDATES": "管理更新",
     "MANAGE_PLUGINS": "管理插件",
     "USE_PLUGINS": "使用插件",
-    "VIEW_USER_SENSITIVE_DATA": "查看用户敏感数据"
+    "VIEW_USER_SENSITIVE_DATA": "查看用户敏感数据",
+    "PIN_DIRECT_MESSAGES": "Pin direct messages",
+    "VIEW_AUDIT_LOG": "View audit log",
+    "MANAGE_SECURITY_EVENTS": "Manage security events"
   },
   "serverDescriptions": {
     "SEND_MESSAGES": "授予在频道中发送消息的权限。",
@@ -50,7 +53,10 @@
     "MANAGE_UPDATES": "授予执行更新的权限。",
     "MANAGE_PLUGINS": "授予管理插件的权限。",
     "USE_PLUGINS": "授予使用插件的权限，例如执行插件命令或查看插件添加的 UI 元素。",
-    "VIEW_USER_SENSITIVE_DATA": "授予查看用户敏感数据（如身份标识、IP 地址和位置）的权限。"
+    "VIEW_USER_SENSITIVE_DATA": "授予查看用户敏感数据（如身份标识、IP 地址和位置）的权限。",
+    "PIN_DIRECT_MESSAGES": "Grants the ability to pin messages in direct-message channels.",
+    "VIEW_AUDIT_LOG": "Grants the ability to view security and moderation audit-log entries.",
+    "MANAGE_SECURITY_EVENTS": "Grants the ability to manage IP security rules and clear recent security events."
   },
   "channel": {
     "VIEW_CHANNEL": "查看频道",

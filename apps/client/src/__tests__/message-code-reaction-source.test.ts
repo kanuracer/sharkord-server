@@ -14,7 +14,8 @@ describe('message code block and reaction fixes', () => {
     expect(cache).toContain('renderFencedCodeBlocks');
     expect(serializer).toContain('CodeBlock');
     expect(serializer).toContain("domNode.name === 'pre'");
-    expect(codeBlock).toContain('dangerouslySetInnerHTML');
+    expect(codeBlock).toContain('ReactNode[]');
+    expect(codeBlock).not.toContain('dangerouslySetInnerHTML');
     expect(codeBlock).toContain('data-language');
   });
 

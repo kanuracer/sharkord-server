@@ -74,6 +74,7 @@ const deleteUserRoute = protectedProcedure
       .select({
         id: users.id,
         identity: users.identity,
+        name: users.name,
         avatarId: users.avatarId,
         bannerId: users.bannerId
       })
@@ -137,10 +138,14 @@ const deleteUserRoute = protectedProcedure
 
     enqueueActivityLog({
       type: ActivityLogType.USER_DELETED,
-      userId: input.userId,
+      userId: ctx.userId,
       details: {
         reason: 'Your account has been deleted',
-        deletedBy: ctx.userId
+        deletedBy: ctx.userId,
+        targetUserId: input.userId,
+        targetIdentity: targetUser.identity,
+        targetName: targetUser.name,
+        wipe: input.wipe
       }
     });
   });

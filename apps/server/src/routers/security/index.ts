@@ -43,19 +43,40 @@ const zUnblockInput = z.object({
     )
 });
 
-const requireSecurityAdmin = async (ctx: {
-  hasPermission: (permission: Permission) => Promise<boolean>;
-  needsPermission: (permission: Permission) => Promise<void>;
-}) => {
-  if (
-    (await ctx.hasPermission(Permission.MANAGE_USERS)) ||
-    (await ctx.hasPermission(Permission.MANAGE_SETTINGS))
-  ) {
-    return;
+const requireAnyPermission = async (
+  ctx: {
+    hasPermission: (permission: Permission) => Promise<boolean>;
+    needsPermission: (permission: Permission) => Promise<void>;
+  },
+  permissions: Permission[]
+) => {
+  for (const permission of permissions) {
+    if (await ctx.hasPermission(permission)) return;
   }
 
-  await ctx.needsPermission(Permission.MANAGE_USERS);
+  await ctx.needsPermission(permissions[0]!);
 };
+
+const requireSecurityEventsAdmin = async (ctx: {
+  hasPermission: (permission: Permission) => Promise<boolean>;
+  needsPermission: (permission: Permission) => Promise<void>;
+}) =>
+  requireAnyPermission(ctx, [
+    Permission.MANAGE_SECURITY_EVENTS,
+    Permission.MANAGE_SETTINGS,
+    Permission.MANAGE_USERS
+  ]);
+
+const requireAuditLogViewer = async (ctx: {
+  hasPermission: (permission: Permission) => Promise<boolean>;
+  needsPermission: (permission: Permission) => Promise<void>;
+}) =>
+  requireAnyPermission(ctx, [
+    Permission.VIEW_AUDIT_LOG,
+    Permission.MANAGE_SECURITY_EVENTS,
+    Permission.MANAGE_SETTINGS,
+    Permission.MANAGE_USERS
+  ]);
 
 const activeRules = async () => {
   const now = Date.now();
@@ -112,7 +133,7 @@ const addRule = async (
 };
 
 const getIpRulesRoute = protectedProcedure.query(async ({ ctx }) => {
-  await requireSecurityAdmin(ctx);
+  await requireSecurityEventsAdmin(ctx);
 
   const rules = await activeRules();
 
@@ -125,21 +146,21 @@ const getIpRulesRoute = protectedProcedure.query(async ({ ctx }) => {
 const addIpAllowlistRoute = protectedProcedure
   .input(zIpRuleInput)
   .mutation(async ({ input, ctx }) => {
-    await requireSecurityAdmin(ctx);
+    await requireSecurityEventsAdmin(ctx);
     return addRule('allow', input, ctx.userId);
   });
 
 const addIpBlockRoute = protectedProcedure
   .input(zIpRuleInput)
   .mutation(async ({ input, ctx }) => {
-    await requireSecurityAdmin(ctx);
+    await requireSecurityEventsAdmin(ctx);
     return addRule('block', input, ctx.userId);
   });
 
 const removeIpRuleRoute = protectedProcedure
   .input(zRuleIdInput)
   .mutation(async ({ input, ctx }) => {
-    await requireSecurityAdmin(ctx);
+    await requireSecurityEventsAdmin(ctx);
 
     const rule = await db
       .select()
@@ -166,7 +187,7 @@ const removeIpRuleRoute = protectedProcedure
 const unblockIpRoute = protectedProcedure
   .input(zUnblockInput)
   .mutation(async ({ input, ctx }) => {
-    await requireSecurityAdmin(ctx);
+    await requireSecurityEventsAdmin(ctx);
 
     const ip = normalizeIpRange(input.ip);
     if (!ip) throw new Error('Invalid IP/CIDR range');
@@ -205,7 +226,7 @@ const zLimitedListInput = z
 const getSecurityEventsRoute = protectedProcedure
   .input(zLimitedListInput)
   .query(async ({ input, ctx }) => {
-    await requireSecurityAdmin(ctx);
+    await requireSecurityEventsAdmin(ctx);
 
     return db
       .select()
@@ -215,20 +236,13 @@ const getSecurityEventsRoute = protectedProcedure
   });
 
 const clearSecurityEventsRoute = protectedProcedure.mutation(async ({ ctx }) => {
-  await requireSecurityAdmin(ctx);
+  await requireSecurityEventsAdmin(ctx);
 
   const [{ total = 0 } = { total: 0 }] = await db
     .select({ total: count() })
     .from(ipSecurityEvents);
 
   await db.delete(ipSecurityEvents).run();
-
-  await insertSecurityEvent({
-    ip: 'system',
-    event: 'security_events_cleared',
-    reason: 'Security events cleared by admin',
-    metadata: { clearedBy: ctx.userId, clearedCount: total }
-  });
 
   enqueueActivityLog({
     type: ActivityLogType.EDIT_SERVER_SETTINGS,
@@ -244,7 +258,7 @@ const clearSecurityEventsRoute = protectedProcedure.mutation(async ({ ctx }) => 
 const getAuditLogRoute = protectedProcedure
   .input(zLimitedListInput)
   .query(async ({ input, ctx }) => {
-    await requireSecurityAdmin(ctx);
+    await requireAuditLogViewer(ctx);
 
     return db
       .select({

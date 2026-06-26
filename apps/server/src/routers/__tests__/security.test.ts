@@ -1,8 +1,8 @@
-import { ActivityLogType } from '@sharkord/shared';
+import { ActivityLogType, Permission } from '@sharkord/shared';
 import { describe, expect, test } from 'bun:test';
 import { initTest } from '../../__tests__/helpers';
 import { tdb } from '../../__tests__/setup';
-import { activityLog } from '../../db/schema';
+import { activityLog, rolePermissions } from '../../db/schema';
 
 describe('security admin router', () => {
   test('lists, allowlists, removes allowlist, and unblocks IPs', async () => {
@@ -50,9 +50,14 @@ describe('security admin router', () => {
     expect(result.cleared).toBeGreaterThan(0);
 
     const after = await caller.security.getSecurityEvents({ limit: 20 });
-    expect(after).toHaveLength(1);
-    expect(after[0]?.event).toBe('security_events_cleared');
-    expect(after[0]?.metadata).toMatchObject({ clearedBy: 1 });
+    expect(after).toHaveLength(0);
+
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    const rows = await caller.security.getAuditLog({ limit: 10 });
+    const clearEntry = rows.find((entry) => entry.type === ActivityLogType.EDIT_SERVER_SETTINGS);
+    expect(clearEntry?.userId).toBe(1);
+    expect(clearEntry?.user?.identity).toBe('testowner');
+    expect(clearEntry?.details).toMatchObject({ values: { securityEventsCleared: expect.any(Number) } });
   });
 
   test('returns server security audit log entries for admins without leaking secrets', async () => {
@@ -75,4 +80,29 @@ describe('security admin router', () => {
     expect(JSON.stringify(row)).not.toContain('password123');
     expect(JSON.stringify(row)).not.toContain('000000');
   });
+
+  test('allows dedicated audit-log and security-event permissions', async () => {
+    const { caller } = await initTest(2);
+    const now = Date.now();
+
+    await expect(caller.security.getAuditLog({ limit: 1 })).rejects.toThrow('Insufficient permissions');
+
+    await tdb.insert(rolePermissions).values({
+      roleId: 2,
+      permission: Permission.VIEW_AUDIT_LOG,
+      createdAt: now
+    });
+
+    expect(Array.isArray(await caller.security.getAuditLog({ limit: 1 }))).toBe(true);
+    await expect(caller.security.clearSecurityEvents()).rejects.toThrow('Insufficient permissions');
+
+    await tdb.insert(rolePermissions).values({
+      roleId: 2,
+      permission: Permission.MANAGE_SECURITY_EVENTS,
+      createdAt: now + 1
+    });
+
+    await expect(caller.security.clearSecurityEvents()).resolves.toMatchObject({ cleared: expect.any(Number) });
+  });
+
 });

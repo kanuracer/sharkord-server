@@ -26,7 +26,10 @@
     "MANAGE_UPDATES": "Gestionar actualizaciones",
     "MANAGE_PLUGINS": "Gestionar plugins",
     "USE_PLUGINS": "Usar plugins",
-    "VIEW_USER_SENSITIVE_DATA": "Ver datos sensibles de usuarios"
+    "VIEW_USER_SENSITIVE_DATA": "Ver datos sensibles de usuarios",
+    "PIN_DIRECT_MESSAGES": "Pin direct messages",
+    "VIEW_AUDIT_LOG": "View audit log",
+    "MANAGE_SECURITY_EVENTS": "Manage security events"
   },
   "serverDescriptions": {
     "SEND_MESSAGES": "Permite enviar mensajes en los canales.",
@@ -50,7 +53,10 @@
     "MANAGE_UPDATES": "Permite realizar actualizaciones.",
     "MANAGE_PLUGINS": "Permite gestionar los plugins.",
     "USE_PLUGINS": "Permite usar plugins, como ejecutar comandos de plugins o ver elementos de interfaz añadidos por plugins.",
-    "VIEW_USER_SENSITIVE_DATA": "Permite ver datos sensibles de los usuarios como identidad, dirección IP y ubicación."
+    "VIEW_USER_SENSITIVE_DATA": "Permite ver datos sensibles de los usuarios como identidad, dirección IP y ubicación.",
+    "PIN_DIRECT_MESSAGES": "Grants the ability to pin messages in direct-message channels.",
+    "VIEW_AUDIT_LOG": "Grants the ability to view security and moderation audit-log entries.",
+    "MANAGE_SECURITY_EVENTS": "Grants the ability to manage IP security rules and clear recent security events."
   },
   "channel": {
     "VIEW_CHANNEL": "Ver canal",

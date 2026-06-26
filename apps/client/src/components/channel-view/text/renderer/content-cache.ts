@@ -14,8 +14,8 @@ const escapeHtml = (value: string) =>
     .replace(/"/g, '&quot;');
 
 const renderFencedCodeBlocks = (content: string) =>
-  content.replace(/```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g, (_match, language, code) =>
-    `<pre data-sharkord-code-block="true" data-language="${escapeHtml(language)}"><code>${escapeHtml(code.replace(/<br\s*\/?\>/gi, '\n'))}</code></pre>`
+  content.replace(/```([a-zA-Z0-9_-]*)(?:\n|<br\s*\/?\s*>)([\s\S]*?)```/gi, (_match, language, code) =>
+    `<pre data-sharkord-code-block="true" data-language="${escapeHtml(language)}"><code>${escapeHtml(code.replace(/<br\s*\/?\s*>/gi, '\n'))}</code></pre>`
   );
 
 const parsedMessageCache = new Map<string, ReactNode>();

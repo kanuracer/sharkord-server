@@ -71,6 +71,10 @@ export type TActivityLogDetailsMap = {
   [ActivityLogType.USER_DELETED]: {
     reason: string | undefined;
     deletedBy: number;
+    targetUserId?: number;
+    targetIdentity?: string;
+    targetName?: string | null;
+    wipe?: boolean;
   };
   [ActivityLogType.USER_CREATED]: {
     inviteCode: string | undefined;
