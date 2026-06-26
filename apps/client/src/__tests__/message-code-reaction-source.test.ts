@@ -17,6 +17,10 @@ describe('message code block and reaction fixes', () => {
     expect(codeBlock).toContain('ReactNode[]');
     expect(codeBlock).not.toContain('dangerouslySetInnerHTML');
     expect(codeBlock).toContain('data-language');
+    expect(codeBlock).toContain('grid grid-cols-[3rem_1fr]');
+    expect(codeBlock).toContain('border-r border-zinc-700/70');
+    expect(codeBlock).toContain('text-orange-400');
+    expect(codeBlock).toContain('text-sky-300 font-semibold');
   });
 
   test('reaction order uses descending createdAt and never renders broken img without a URL', () => {
@@ -44,6 +48,9 @@ describe('message code block and reaction fixes', () => {
   test('webclient code parser handles paragraph html and image gifs render inline full-size', () => {
     const cache = read('components/channel-view/text/renderer/content-cache.ts');
     const fileCard = read('components/channel-view/text/file-card.tsx');
+    const renderer = read('components/channel-view/text/renderer/index.tsx');
+    const mediaCache = read('components/channel-view/text/renderer/media-cache.ts');
+    const imageOverride = read('components/channel-view/text/overrides/image.tsx');
     expect(cache).toContain('htmlToLineText');
     expect(cache).toContain('p|div|li|pre');
     expect(cache).toContain('.map((line) => line.trim())');
@@ -51,5 +58,10 @@ describe('message code block and reaction fixes', () => {
     expect(fileCard).toContain('max-h-[520px]');
     expect(fileCard).toContain('<img');
     expect(fileCard).not.toContain('flex items-center justify-between gap-3 px-2 py-1.5');
+    expect(mediaCache).toContain('normalizeFileExtension');
+    expect(mediaCache).toContain("source: 'file'");
+    expect(renderer).toContain('mediaFileIds');
+    expect(renderer).toContain('!mediaFileIds.has(file.id)');
+    expect(imageOverride).not.toContain('Open in new tab');
   });
 });

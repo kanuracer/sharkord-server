@@ -52,6 +52,12 @@ const trimMediaCache = () => {
   }
 };
 
+const normalizeFileExtension = (extension: string) => {
+  const raw = extension.toLowerCase().replace(/^\./, '');
+
+  return raw ? `.${raw}` : '';
+};
+
 const getStableMediaKey = (counts: Map<string, number>, baseKey: string) => {
   const nextCount = (counts.get(baseKey) ?? 0) + 1;
 
@@ -89,13 +95,14 @@ const extractMessageMedia = (message: TJoinedMessage): TFoundMedia[] => {
 
   const mediaFromFiles: TFoundMedia[] = message.files
     .map((file) => {
-      const extension = file.extension.toLowerCase();
+      const extension = normalizeFileExtension(file.extension);
 
       if (imageExtensions.includes(extension)) {
         return {
           key: getStableMediaKey(mediaKeyCounts, `file:${file.id}`),
           type: 'image',
-          url: getFileUrl(file)
+          url: getFileUrl(file),
+          source: 'file'
         };
       }
 
@@ -103,7 +110,8 @@ const extractMessageMedia = (message: TJoinedMessage): TFoundMedia[] => {
         return {
           key: getStableMediaKey(mediaKeyCounts, `file:${file.id}`),
           type: 'video',
-          url: getFileUrl(file)
+          url: getFileUrl(file),
+          source: 'file'
         };
       }
 
@@ -111,7 +119,8 @@ const extractMessageMedia = (message: TJoinedMessage): TFoundMedia[] => {
         return {
           key: getStableMediaKey(mediaKeyCounts, `file:${file.id}`),
           type: 'audio',
-          url: getFileUrl(file)
+          url: getFileUrl(file),
+          source: 'file'
         };
       }
 
@@ -133,7 +142,8 @@ const extractMessageMedia = (message: TJoinedMessage): TFoundMedia[] => {
           `metadata:${metadataEntry.mediaType}:${metadataEntry.url}`
         ),
         type: metadataEntry.mediaType,
-        url: metadataEntry.url
+        url: metadataEntry.url,
+        source: 'metadata'
       };
     })
     .filter((media) => !!media) as TFoundMedia[];

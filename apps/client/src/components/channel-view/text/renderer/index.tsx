@@ -6,7 +6,12 @@ import { getFileUrl } from '@/helpers/get-file-url';
 import { getRenderedUsername } from '@/helpers/get-rendered-username';
 import { getTRPCClient } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
-import { type TJoinedMessage } from '@sharkord/shared';
+import {
+  audioExtensions,
+  imageExtensions,
+  type TJoinedMessage,
+  videoExtensions
+} from '@sharkord/shared';
 import { Tooltip } from '@sharkord/ui';
 import { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -24,6 +29,12 @@ type TMessageRendererProps = {
   message: TJoinedMessage;
   disableFiles?: boolean;
   disableReactions?: boolean;
+};
+
+const normalizeFileExtension = (extension: string) => {
+  const raw = extension.toLowerCase().replace(/^\./, '');
+
+  return raw ? `.${raw}` : '';
 };
 
 const MessageRenderer = memo(
@@ -68,6 +79,19 @@ const MessageRenderer = memo(
     );
 
     const allMedia = useMemo(() => extractMessageMedia(message), [message]);
+    const mediaFileIds = useMemo(() => {
+      const mediaExtensions = new Set([
+        ...imageExtensions,
+        ...videoExtensions,
+        ...audioExtensions
+      ]);
+
+      return new Set(
+        message.files
+          .filter((file) => mediaExtensions.has(normalizeFileExtension(file.extension)))
+          .map((file) => file.id)
+      );
+    }, [message.files]);
     const openGraphPreviews = useMemo(
       () => extractMessageOpenGraph(message, allMedia),
       [message, allMedia]
@@ -123,9 +147,9 @@ const MessageRenderer = memo(
           />
         )}
 
-        {message.files.length > 0 && !disableFiles && (
+        {message.files.some((file) => !mediaFileIds.has(file.id)) && !disableFiles && (
           <div className="flex gap-1 flex-wrap">
-            {message.files.map((file) => (
+            {message.files.filter((file) => !mediaFileIds.has(file.id)).map((file) => (
               <FileCard
                 key={file.id}
                 name={file.originalName}

@@ -58,7 +58,13 @@ const FileCard = ({
     [onRemove]
   );
 
-  const isInlineImage = /^(png|jpe?g|gif|webp|avif|bmp|svg)$/i.test(extension || name.split('.').pop() || '');
+  const rawExtension = extension || name.split('.').pop() || '';
+  const normalizedExtension = rawExtension
+    ? `.${rawExtension.toLowerCase().replace(/^\./, '')}`
+    : '';
+  const isInlineImage = /^(\.png|\.jpe?g|\.gif|\.webp|\.avif|\.bmp|\.svg)$/i.test(
+    normalizedExtension
+  );
 
   if (isInlineImage && href) {
     return (

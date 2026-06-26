@@ -2,7 +2,6 @@ import { FullScreenImage } from '@/components/fullscreen-image/content';
 import { Skeleton } from '@sharkord/ui';
 import { memo, useCallback, useEffect, useState } from 'react';
 import { OverrideLayout } from './layout';
-import { LinkOverride } from './link';
 
 type TImageOverrideProps = {
   src: string;
@@ -54,8 +53,6 @@ const ImageOverride = memo(({ src, alt }: TImageOverrideProps) => {
           crossOrigin="anonymous"
         />
       )}
-
-      <LinkOverride link={src} label="Open in new tab" />
     </OverrideLayout>
   );
 });
