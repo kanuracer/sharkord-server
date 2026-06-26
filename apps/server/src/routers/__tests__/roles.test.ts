@@ -317,4 +317,17 @@ describe('roles router', () => {
       expect(role!.permissions).toContain(perm);
     });
   });
+
+  test('owner role exposes newly added implied permissions after reload', async () => {
+    const { caller } = await initTest();
+
+    const roles = await caller.roles.getAll();
+    const ownerRole = roles.find((role) => role.id === 1);
+
+    expect(ownerRole).toBeDefined();
+    expect(ownerRole!.permissions).toContain(Permission.PIN_DIRECT_MESSAGES);
+    expect(ownerRole!.permissions).toContain(Permission.VIEW_AUDIT_LOG);
+    expect(ownerRole!.permissions).toContain(Permission.MANAGE_SECURITY_EVENTS);
+  });
+
 });

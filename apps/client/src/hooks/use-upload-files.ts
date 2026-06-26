@@ -449,6 +449,7 @@ const useUploadFiles = (
       uploadingSize,
       uploadSpeed,
       openFileDialog,
+      processFiles,
       fileInputProps
     }),
     [
@@ -460,6 +461,7 @@ const useUploadFiles = (
       uploadingSize,
       uploadSpeed,
       openFileDialog,
+      processFiles,
       fileInputProps
     ]
   );

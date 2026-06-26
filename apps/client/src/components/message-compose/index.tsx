@@ -23,7 +23,7 @@ import {
 } from '@sharkord/shared';
 import { Button, Spinner } from '@sharkord/ui';
 import { filesize } from 'filesize';
-import { Paperclip, Reply, Send, Smile, X } from 'lucide-react';
+import { Image as ImageIcon, Paperclip, Reply, Send, Smile, X } from 'lucide-react';
 import {
   memo,
   useCallback,
@@ -91,6 +91,10 @@ const MessageCompose = memo(
     const containerRef = composeContainerRef ?? internalContainerRef;
     const tiptapRef = useRef<TTiptapInputHandle>(null);
     const [sending, setSending] = useState(false);
+    const [gifOpen, setGifOpen] = useState(false);
+    const [gifQuery, setGifQuery] = useState('');
+    const [gifLoading, setGifLoading] = useState(false);
+    const [gifResults, setGifResults] = useState<Array<{ id: string; title: string; url: string; previewUrl: string }>>([]);
     const can = useCan();
     const channelCan = useChannelCan(channelId);
     const channel = useChannelById(channelId);
@@ -141,8 +145,35 @@ const MessageCompose = memo(
       uploadingSize,
       uploadSpeed,
       openFileDialog,
+      processFiles,
       fileInputProps
     } = useUploadFiles(channelId, containerRef, !canSendMessages);
+
+    const searchGifs = useCallback(async (query = gifQuery) => {
+      setGifLoading(true);
+      try {
+        const params = new URLSearchParams({ key: 'LIVDSRZULELA', q: query.trim() || 'trending', limit: '12', media_filter: 'minimal' });
+        const response = await fetch(`https://api.tenor.com/v1/search?${params.toString()}`);
+        if (!response.ok) throw new Error(`Tenor ${response.status}`);
+        const payload = await response.json() as { results?: Array<{ id?: string; title?: string; content_description?: string; media?: Array<{ gif?: { url?: string }; tinygif?: { url?: string } }>; media_formats?: { gif?: { url?: string }; tinygif?: { url?: string }; nanogif?: { url?: string } } }> };
+        setGifResults((payload.results ?? []).flatMap((item) => {
+          const url = item.media?.[0]?.gif?.url || item.media_formats?.gif?.url;
+          const previewUrl = item.media?.[0]?.tinygif?.url || item.media_formats?.tinygif?.url || item.media_formats?.nanogif?.url || url;
+          return url && previewUrl ? [{ id: item.id || url, title: item.title || item.content_description || 'GIF', url, previewUrl }] : [];
+        }));
+      } finally {
+        setGifLoading(false);
+      }
+    }, [gifQuery]);
+
+    const attachGif = useCallback(async (gif: { title: string; url: string }) => {
+      const response = await fetch(gif.url);
+      if (!response.ok) throw new Error(`GIF ${response.status}`);
+      const blob = await response.blob();
+      const safeName = (gif.title || 'tenor').replace(/[^a-z0-9_-]+/gi, '-').replace(/^-|-$/g, '').slice(0, 40) || 'tenor';
+      await processFiles([new File([blob], `${safeName}.gif`, { type: 'image/gif' })]);
+      setGifOpen(false);
+    }, [processFiles]);
 
     useFileAwareHeight({
       containerRef,
@@ -317,6 +348,29 @@ const MessageCompose = memo(
               <PluginSlotRenderer slotId={PluginSlot.CHAT_ACTIONS} />
             )}
 
+            <div className="relative">
+              <Button
+                size="icon"
+                variant="ghost"
+                disabled={uploading || !canUploadFiles}
+                onClick={(event) => { event.preventDefault(); const next = !gifOpen; setGifOpen(next); if (next && !gifResults.length) void searchGifs(gifQuery); }}
+                title="GIFs"
+              >
+                <ImageIcon className="h-4 w-4" />
+              </Button>
+              {gifOpen && (
+                <div className="absolute bottom-10 right-0 z-50 w-72 rounded-md border border-border bg-background p-2 shadow-xl" onClick={(event) => event.stopPropagation()}>
+                  <form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); void searchGifs(gifQuery); }}>
+                    <input className="min-w-0 flex-1 rounded border border-border bg-transparent px-2 py-1 text-sm" value={gifQuery} onChange={(event) => setGifQuery(event.target.value)} placeholder="GIF suchen…" />
+                    <Button size="sm" type="submit" disabled={gifLoading}>{gifLoading ? '...' : 'Suchen'}</Button>
+                  </form>
+                  <div className="mt-2 grid max-h-72 grid-cols-3 gap-1 overflow-auto">
+                    {gifResults.map((gif) => <button type="button" key={gif.id} className="overflow-hidden rounded bg-muted" onClick={() => void attachGif(gif)} title={gif.title}><img src={gif.previewUrl} alt={gif.title} className="h-20 w-full object-cover" loading="lazy" /></button>)}
+                  </div>
+                  <div className="mt-1 text-[10px] text-muted-foreground">GIFs von Tenor</div>
+                </div>
+              )}
+            </div>
             <EmojiPicker
               onEmojiSelect={(emoji) => tiptapRef.current?.insertEmoji(emoji)}
             >

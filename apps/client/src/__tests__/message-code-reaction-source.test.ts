@@ -19,9 +19,20 @@ describe('message code block and reaction fixes', () => {
     expect(codeBlock).toContain('data-language');
   });
 
-  test('reaction order uses descending createdAt instead of adding timestamps', () => {
+  test('reaction order uses descending createdAt and never renders broken img without a URL', () => {
     const reactions = read('components/channel-view/text/message-reactions.tsx');
     expect(reactions).toContain('(a, b) => b.createdAt - a.createdAt');
     expect(reactions).not.toContain('(a, b) => b.createdAt + a.createdAt');
+    expect(reactions).toContain('if (!imgSrc)');
+    expect(reactions).toContain('`:${emojiName}:`');
+  });
+
+  test('message composer exposes Tenor GIF search and uploads selected GIFs', () => {
+    const compose = read('components/message-compose/index.tsx');
+    const uploadHook = read('hooks/use-upload-files.ts');
+    expect(compose).toContain('api.tenor.com/v1/search');
+    expect(compose).toContain('GIFs von Tenor');
+    expect(compose).toContain('attachGif');
+    expect(uploadHook).toContain('processFiles');
   });
 });

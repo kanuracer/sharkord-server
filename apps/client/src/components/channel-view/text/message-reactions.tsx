@@ -83,6 +83,14 @@ const Emoji = memo(
       );
     }
 
+    if (!imgSrc) {
+      return (
+        <span className={cn('text-xs text-muted-foreground', nativeEmojiClassName)}>
+          {gitHubEmoji?.emoji ?? `:${emojiName}:`}
+        </span>
+      );
+    }
+
     return (
       <img
         src={imgSrc}
