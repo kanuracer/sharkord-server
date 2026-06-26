@@ -58,11 +58,38 @@ const FileCard = ({
     [onRemove]
   );
 
+  const isInlineImage = /^(png|jpe?g|gif|webp|avif|bmp|svg)$/i.test(extension || name.split('.').pop() || '');
+
+  if (isInlineImage && href) {
+    return (
+      <div className="group max-w-2xl overflow-hidden rounded-lg border border-border bg-background/70">
+        <a href={href} target="_blank" rel="noreferrer" className="block bg-black/20">
+          <img
+            src={href}
+            alt={name}
+            loading="lazy"
+            className="max-h-[520px] w-auto max-w-full object-contain"
+          />
+        </a>
+        <div className="flex items-center justify-between gap-3 px-2 py-1.5 text-xs text-muted-foreground">
+          <span className="min-w-0 truncate" title={name}>{name}</span>
+          <span className="shrink-0">{filesize(size)}</span>
+          {onRemove && (
+            <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={onRemoveClick}>
+              <Trash className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <a
       className="flex max-w-sm items-center gap-3 rounded-lg border border-border bg-background p-2 select-none transition-all duration-200 hover:border-primary/50 hover:bg-accent hover:shadow-md"
       href={href}
       target="_blank"
+      rel="noreferrer"
     >
       <div className="flex shrink-0 items-center justify-center rounded-md bg-muted p-2 transition-colors duration-200">
         <FileIcon extension={extension} />

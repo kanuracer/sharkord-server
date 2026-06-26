@@ -352,20 +352,21 @@ const MessageCompose = memo(
               <Button
                 size="icon"
                 variant="ghost"
+                type="button"
                 disabled={uploading || !canUploadFiles}
-                onClick={(event) => { event.preventDefault(); const next = !gifOpen; setGifOpen(next); if (next && !gifResults.length) void searchGifs(gifQuery); }}
+                onClick={(event) => { event.preventDefault(); event.stopPropagation(); const next = !gifOpen; setGifOpen(next); if (next && !gifResults.length) void searchGifs(gifQuery); }}
                 title="GIFs"
               >
                 <ImageIcon className="h-4 w-4" />
               </Button>
               {gifOpen && (
-                <div className="absolute bottom-10 right-0 z-50 w-72 rounded-md border border-border bg-background p-2 shadow-xl" onClick={(event) => event.stopPropagation()}>
-                  <form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); void searchGifs(gifQuery); }}>
-                    <input className="min-w-0 flex-1 rounded border border-border bg-transparent px-2 py-1 text-sm" value={gifQuery} onChange={(event) => setGifQuery(event.target.value)} placeholder="GIF suchen…" />
-                    <Button size="sm" type="submit" disabled={gifLoading}>{gifLoading ? '...' : 'Suchen'}</Button>
-                  </form>
-                  <div className="mt-2 grid max-h-72 grid-cols-3 gap-1 overflow-auto">
-                    {gifResults.map((gif) => <button type="button" key={gif.id} className="overflow-hidden rounded bg-muted" onClick={() => void attachGif(gif)} title={gif.title}><img src={gif.previewUrl} alt={gif.title} className="h-20 w-full object-cover" loading="lazy" /></button>)}
+                <div className="fixed bottom-20 right-6 z-[9999] w-80 rounded-md border border-border bg-background p-2 shadow-2xl" onMouseDown={(event) => event.stopPropagation()} onClick={(event) => event.stopPropagation()}>
+                  <div className="flex gap-2">
+                    <input className="min-w-0 flex-1 rounded border border-border bg-transparent px-2 py-1 text-sm" value={gifQuery} onChange={(event) => setGifQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); void searchGifs(gifQuery); } }} placeholder="GIF suchen…" />
+                    <Button size="sm" type="button" disabled={gifLoading} onClick={() => void searchGifs(gifQuery)}>{gifLoading ? '...' : 'Suchen'}</Button>
+                  </div>
+                  <div className="mt-2 grid max-h-80 grid-cols-3 gap-1 overflow-auto">
+                    {gifResults.map((gif) => <button type="button" key={gif.id} className="overflow-hidden rounded bg-muted" onClick={(event) => { event.preventDefault(); void attachGif(gif); }} title={gif.title}><img src={gif.previewUrl} alt={gif.title} className="h-24 w-full object-cover" loading="lazy" /></button>)}
                   </div>
                   <div className="mt-1 text-[10px] text-muted-foreground">GIFs von Tenor</div>
                 </div>

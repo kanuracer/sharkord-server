@@ -27,12 +27,26 @@ describe('message code block and reaction fixes', () => {
     expect(reactions).toContain('`:${emojiName}:`');
   });
 
-  test('message composer exposes Tenor GIF search and uploads selected GIFs', () => {
+  test('message composer exposes Tenor GIF search without nested form clipping/reload', () => {
     const compose = read('components/message-compose/index.tsx');
     const uploadHook = read('hooks/use-upload-files.ts');
     expect(compose).toContain('api.tenor.com/v1/search');
     expect(compose).toContain('GIFs von Tenor');
     expect(compose).toContain('attachGif');
+    expect(compose).toContain('fixed bottom-20 right-6 z-[9999]');
+    expect(compose).toContain('type="button" disabled={gifLoading}');
+    expect(compose).not.toContain('<form className="flex gap-2"');
     expect(uploadHook).toContain('processFiles');
+  });
+
+  test('webclient code parser handles paragraph html and image gifs render inline full-size', () => {
+    const cache = read('components/channel-view/text/renderer/content-cache.ts');
+    const fileCard = read('components/channel-view/text/file-card.tsx');
+    expect(cache).toContain('htmlToLineText');
+    expect(cache).toContain('p|div|li|pre');
+    expect(cache).toContain('.map((line) => line.trim())');
+    expect(fileCard).toContain('isInlineImage');
+    expect(fileCard).toContain('max-h-[520px]');
+    expect(fileCard).toContain('<img');
   });
 });

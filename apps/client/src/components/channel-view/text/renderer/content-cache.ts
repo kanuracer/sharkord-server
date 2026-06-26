@@ -13,10 +13,43 @@ const escapeHtml = (value: string) =>
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 
-const renderFencedCodeBlocks = (content: string) =>
-  content.replace(/```([a-zA-Z0-9_-]*)(?:\n|<br\s*\/?\s*>)([\s\S]*?)```/gi, (_match, language, code) =>
+const decodeHtmlEntities = (value: string) =>
+  value
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'");
+
+const htmlToLineText = (content: string) =>
+  decodeHtmlEntities(
+    content
+      .replace(/\r\n?/g, '\n')
+      .replace(/<br\s*\/?\s*>/gi, '\n')
+      .replace(/<\/(p|div|li|pre)>\s*<\s*(p|div|li|pre)[^>]*>/gi, '\n')
+      .replace(/<\/(p|div|li|pre)>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+  )
+    .split('\n')
+    .map((line) => line.trim())
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+const renderFencedCodeBlocks = (content: string) => {
+  const text = htmlToLineText(content);
+  const match = text.match(/^```([a-zA-Z0-9_-]*)[ \t]*\n([\s\S]*?)\n?```$/) ||
+    text.match(/```([a-zA-Z0-9_-]*)[ \t]*\n([\s\S]*?)\n?```/);
+
+  if (match) {
+    return `<pre data-sharkord-code-block="true" data-language="${escapeHtml(match[1] ?? '')}"><code>${escapeHtml(match[2] ?? '')}</code></pre>`;
+  }
+
+  return content.replace(/```([a-zA-Z0-9_-]*)(?:\r?\n|<br\s*\/?\s*>)([\s\S]*?)```/gi, (_match, language, code) =>
     `<pre data-sharkord-code-block="true" data-language="${escapeHtml(language)}"><code>${escapeHtml(code.replace(/<br\s*\/?\s*>/gi, '\n'))}</code></pre>`
   );
+};
 
 const parsedMessageCache = new Map<string, ReactNode>();
 const emojiOnlyCache = new Map<string, boolean>();
