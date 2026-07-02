@@ -7,9 +7,13 @@ describe('message code rendering source', () => {
     const cache = readFileSync(join(import.meta.dir, '../components/channel-view/text/renderer/content-cache.ts'), 'utf8');
     const codeBlock = readFileSync(join(import.meta.dir, '../components/channel-view/text/renderer/code-block.tsx'), 'utf8');
 
-    expect(cache).toContain('(?:\\n|<br');
+    expect(cache).toContain('htmlToLineText');
+    expect(cache).toContain('<br\\s*\\/?\\s*>');
     expect(cache).toContain('data-sharkord-code-block');
     expect(codeBlock).toContain('ReactNode[]');
+    expect(codeBlock).toContain('navigator.clipboard.writeText(code)');
+    expect(codeBlock).toContain('Copy code');
+    expect(codeBlock).toContain('Copied');
     expect(codeBlock).not.toContain('dangerouslySetInnerHTML');
   });
 });
