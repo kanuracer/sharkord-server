@@ -359,13 +359,6 @@ const loginRouteHandler = async (
     }
   }
 
-  if (existingUser.banned) {
-    throw new HttpValidationError(
-      'identity',
-      `Identity banned: ${existingUser.banReason || 'No reason provided'}`
-    );
-  }
-
   // temporary logic to migrate old SHA256 password hashes to argon2 on login
   const isPasswordArgon = existingUser.password.startsWith('$argon2');
 
@@ -491,22 +484,36 @@ const loginRouteHandler = async (
 
       if (data.rememberDevice) {
         newAppPassword = generateAppPassword();
-        const appPassword = await db
-          .insert(userAppPasswords)
-          .values({
-            userId: existingUser.id,
-            name: data.deviceName || 'Sharkord Desktop',
-            tokenHash: await hashAppPassword(newAppPassword),
-            createdAt: Date.now(),
-            lastUsedAt: Date.now(),
-            revokedAt: null
-          })
-          .returning({ id: userAppPasswords.id })
-          .get();
-        newAppPasswordId = appPassword.id;
-        authenticatedAppPasswordId = appPassword.id;
       }
     }
+  }
+
+  if (existingUser.banned) {
+    logger.info(
+      `${chalk.dim('[Auth]')} Blocked login for banned user "${existingUser.identity}" after valid credentials. (IP: ${connectionInfo?.ip || 'unknown'})`
+    );
+
+    throw new HttpValidationError(
+      'identity',
+      `Identity banned: ${existingUser.banReason || 'No reason provided'}`
+    );
+  }
+
+  if (newAppPassword) {
+    const appPassword = await db
+      .insert(userAppPasswords)
+      .values({
+        userId: existingUser.id,
+        name: data.deviceName || 'Sharkord Desktop',
+        tokenHash: await hashAppPassword(newAppPassword),
+        createdAt: Date.now(),
+        lastUsedAt: Date.now(),
+        revokedAt: null
+      })
+      .returning({ id: userAppPasswords.id })
+      .get();
+    newAppPasswordId = appPassword.id;
+    authenticatedAppPasswordId = appPassword.id;
   }
 
   const token = jwt.sign(

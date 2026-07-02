@@ -418,6 +418,24 @@ describe('/login', () => {
     expect(data.errors.identity).toContain('banned');
   });
 
+  test('should not reveal banned state before valid password', async () => {
+    await tdb.update(settings).set({ allowNewUsers: false });
+    await tdb
+      .update(users)
+      .set({
+        banned: true,
+        banReason: 'test ban'
+      })
+      .where(eq(users.identity, 'testuser'));
+
+    const bannedWrongPassword = await login('testuser', 'wrongpassword');
+    const unknownIdentity = await login('missingidentity', 'password123');
+
+    expect(bannedWrongPassword.status).toBe(400);
+    expect(unknownIdentity.status).toBe(400);
+    expect(await bannedWrongPassword.json()).toEqual(await unknownIdentity.json());
+  });
+
   test('should fail with missing identity', async () => {
     const response = await login('', 'somepassword');
 
