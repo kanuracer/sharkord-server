@@ -13,6 +13,35 @@ const unregisterWsClient = (client: WebSocket) => {
   wsClients.delete(client);
 };
 
+const closeSocketsForUser = async (
+  userId: number,
+  code: number,
+  reason?: string
+) => {
+  const serverToken = await getServerToken();
+
+  for (const client of wsClients) {
+    if (client.readyState !== WebSocket.OPEN) continue;
+
+    if (client.userId === userId) {
+      client.close(code, reason);
+      continue;
+    }
+
+    if (!client.token) continue;
+
+    try {
+      const decoded = jwt.verify(client.token, serverToken) as TTokenPayload;
+
+      if (decoded.userId === userId) {
+        client.close(code, reason);
+      }
+    } catch {
+      // Ignore sockets with malformed/stale tokens; normal auth paths handle them.
+    }
+  }
+};
+
 const closeSocketsForAppPassword = async (
   userId: number,
   appPasswordId: number
@@ -37,4 +66,9 @@ const closeSocketsForAppPassword = async (
   }
 };
 
-export { closeSocketsForAppPassword, registerWsClient, unregisterWsClient };
+export {
+  closeSocketsForAppPassword,
+  closeSocketsForUser,
+  registerWsClient,
+  unregisterWsClient
+};

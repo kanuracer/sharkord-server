@@ -55,7 +55,8 @@ export type TActivityLogDetailsMap = {
   [ActivityLogType.EDIT_SERVER_SETTINGS]: {
     values: Partial<{
       [K in keyof TSettings]: any;
-    }> & Record<string, any>;
+    }> &
+      Record<string, any>;
   };
   // -------------------- USERS --------------------
   [ActivityLogType.USER_KICKED]: {
@@ -65,6 +66,8 @@ export type TActivityLogDetailsMap = {
   [ActivityLogType.USER_BANNED]: {
     reason: string | undefined;
     bannedBy: number;
+    bannedByName?: string;
+    bannedByIdentity?: string;
   };
   [ActivityLogType.USER_UNBANNED]: {
     unbannedBy: number;

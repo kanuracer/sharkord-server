@@ -384,6 +384,8 @@ const getUserByToken = async (token: string | undefined) => {
 
     const user = await getUserById(decoded.userId);
 
+    if (user?.banned) return undefined;
+
     return user;
   } catch {
     return undefined;

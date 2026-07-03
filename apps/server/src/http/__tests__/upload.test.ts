@@ -1,10 +1,11 @@
 import { UploadHeaders, type TTempFile } from '@sharkord/shared';
 import { afterAll, beforeEach, describe, expect, test } from 'bun:test';
+import { eq } from 'drizzle-orm';
 import fs from 'fs/promises';
 import path from 'path';
 import { login, uploadFile } from '../../__tests__/helpers';
 import { tdb, testsBaseUrl } from '../../__tests__/setup';
-import { settings } from '../../db/schema';
+import { settings, users } from '../../db/schema';
 import { TMP_PATH } from '../../helpers/paths';
 import { sanitizeFileName } from '../helpers';
 
@@ -85,6 +86,26 @@ describe('/upload', () => {
     const data: any = await response.json();
 
     expect(data).toHaveProperty('error', 'Unauthorized');
+  });
+
+  test('should reject upload token for a user banned after login', async () => {
+    const response = await login('testuser', 'password123');
+    const data: any = await response.json();
+
+    await tdb
+      .update(users)
+      .set({
+        banned: true,
+        banReason: 'Upload token regression',
+        bannedAt: Date.now()
+      })
+      .where(eq(users.id, 2));
+
+    const file = getMockFile('banned users cannot upload with stale tokens');
+    const uploadResponse = await uploadFile(file, data.token);
+
+    expect(uploadResponse.status).toBe(401);
+    expect(await uploadResponse.json()).toHaveProperty('error', 'Unauthorized');
   });
 
   test('should throw when uploads are disabled', async () => {

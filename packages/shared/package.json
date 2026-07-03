@@ -1,6 +1,6 @@
 {
   "name": "@sharkord/shared",
-  "version": "0.0.24-kr.9",
+  "version": "0.0.24-kr.10",
   "type": "module",
   "private": true,
   "main": "src/index.ts",

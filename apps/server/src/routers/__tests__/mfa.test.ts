@@ -11,6 +11,7 @@ import { userAppPasswords, users } from '../../db/schema';
 import { generateTotpCode } from '../../utils/totp';
 import {
   closeSocketsForAppPassword,
+  closeSocketsForUser,
   registerWsClient,
   unregisterWsClient
 } from '../../utils/ws-client-registry';
@@ -19,7 +20,10 @@ describe('users MFA router', () => {
   test('starts setup, enables MFA with a valid code, and reports status', async () => {
     const { caller } = await initTest(1);
 
-    expect(await caller.users.mfa.status()).toEqual({ enabled: false, recoveryCodesRemaining: 0 });
+    expect(await caller.users.mfa.status()).toEqual({
+      enabled: false,
+      recoveryCodesRemaining: 0
+    });
 
     const setup = await caller.users.mfa.start();
 
@@ -37,7 +41,10 @@ describe('users MFA router', () => {
 
     expect(enabled.enabled).toBe(true);
     expect(enabled.recoveryCodes).toHaveLength(10);
-    expect(await caller.users.mfa.status()).toEqual({ enabled: true, recoveryCodesRemaining: 10 });
+    expect(await caller.users.mfa.status()).toEqual({
+      enabled: true,
+      recoveryCodesRemaining: 10
+    });
 
     const user = await tdb
       .select({
@@ -165,6 +172,25 @@ describe('users MFA router', () => {
     expect(refreshed[0]!.revokedAt).toBeNumber();
   });
 
+  test('getUserByToken rejects banned users even when their JWT is still valid', async () => {
+    const token = jwt.sign({ userId: 2 }, await sha256(TEST_SECRET_TOKEN), {
+      expiresIn: '86400s'
+    });
+
+    expect(await getUserByToken(token)).toBeTruthy();
+
+    await tdb
+      .update(users)
+      .set({
+        banned: true,
+        banReason: 'Token revocation regression',
+        bannedAt: Date.now()
+      })
+      .where(eq(users.id, 2));
+
+    expect(await getUserByToken(token)).toBeUndefined();
+  });
+
   test('getUserByToken rejects JWTs tied to revoked app passwords', async () => {
     const { caller } = await initTest(1);
     const inserted = await tdb
@@ -189,6 +215,67 @@ describe('users MFA router', () => {
     expect(await getUserByToken(token)).toBeTruthy();
     await caller.users.mfa.revokeAppPassword({ id: inserted.id });
     expect(await getUserByToken(token)).toBeUndefined();
+  });
+
+  test('closeSocketsForUser closes every active socket for that user', async () => {
+    const firstToken = jwt.sign(
+      { userId: 2 },
+      await sha256(TEST_SECRET_TOKEN),
+      {
+        expiresIn: '86400s'
+      }
+    );
+    const secondToken = jwt.sign(
+      { userId: 2 },
+      await sha256(TEST_SECRET_TOKEN),
+      {
+        expiresIn: '86400s'
+      }
+    );
+    const otherToken = jwt.sign(
+      { userId: 3 },
+      await sha256(TEST_SECRET_TOKEN),
+      {
+        expiresIn: '86400s'
+      }
+    );
+    const closeCalls: Array<{ code?: number; reason?: string }> = [];
+    const firstSocket = {
+      token: firstToken,
+      userId: 2,
+      readyState: WebSocket.OPEN,
+      close: (code?: number, reason?: string) =>
+        closeCalls.push({ code, reason })
+    } as unknown as WebSocket;
+    const secondSocket = {
+      token: secondToken,
+      readyState: WebSocket.OPEN,
+      close: (code?: number, reason?: string) =>
+        closeCalls.push({ code, reason })
+    } as unknown as WebSocket;
+    const otherSocket = {
+      token: otherToken,
+      userId: 3,
+      readyState: WebSocket.OPEN,
+      close: (code?: number, reason?: string) =>
+        closeCalls.push({ code, reason })
+    } as unknown as WebSocket;
+
+    registerWsClient(firstSocket);
+    registerWsClient(secondSocket);
+    registerWsClient(otherSocket);
+    try {
+      await closeSocketsForUser(2, 4003, 'Banned');
+    } finally {
+      unregisterWsClient(firstSocket);
+      unregisterWsClient(secondSocket);
+      unregisterWsClient(otherSocket);
+    }
+
+    expect(closeCalls).toEqual([
+      { code: 4003, reason: 'Banned' },
+      { code: 4003, reason: 'Banned' }
+    ]);
   });
 
   test('app-password revoke closes matching active desktop sockets', async () => {

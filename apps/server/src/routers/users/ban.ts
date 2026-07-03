@@ -3,10 +3,12 @@ import { eq } from 'drizzle-orm';
 import z from 'zod';
 import { db } from '../../db';
 import { publishUser } from '../../db/publishers';
+import { getUserById } from '../../db/queries/users';
 import { users } from '../../db/schema';
 import { enqueueActivityLog } from '../../queues/activity-log';
 import { invariant } from '../../utils/invariant';
 import { protectedProcedure } from '../../utils/trpc';
+import { closeSocketsForUser } from '../../utils/ws-client-registry';
 
 const banRoute = protectedProcedure
   .input(
@@ -23,11 +25,7 @@ const banRoute = protectedProcedure
       message: 'You cannot ban yourself.'
     });
 
-    const userWs = ctx.getUserWs(input.userId);
-
-    if (userWs) {
-      userWs.close(DisconnectCode.BANNED, input.reason);
-    }
+    const actor = await getUserById(ctx.userId);
 
     await db
       .update(users)
@@ -38,6 +36,12 @@ const banRoute = protectedProcedure
       })
       .where(eq(users.id, input.userId));
 
+    await closeSocketsForUser(
+      input.userId,
+      DisconnectCode.BANNED,
+      input.reason
+    );
+
     publishUser(input.userId, 'update');
 
     enqueueActivityLog({
@@ -45,7 +49,9 @@ const banRoute = protectedProcedure
       userId: input.userId,
       details: {
         reason: input.reason,
-        bannedBy: ctx.userId
+        bannedBy: ctx.userId,
+        bannedByName: actor?.name,
+        bannedByIdentity: actor?.identity
       }
     });
   });
