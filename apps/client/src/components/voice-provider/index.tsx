@@ -840,6 +840,8 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
   ]);
 
   const startScreenShareStream = useCallback(async () => {
+    let capturedDisplayStream: MediaStream | undefined;
+
     try {
       logVoice('Starting screen share stream');
       const canRestrictOwnAudio = getRestrictOwnAudioSupport();
@@ -875,6 +877,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
       const stream = await navigator.mediaDevices.getDisplayMedia(
         displayMediaConstraints
       );
+      capturedDisplayStream = stream;
 
       logVoice('Screen share stream obtained', { stream });
       setLocalScreenShare(stream);
@@ -1049,11 +1052,13 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
         throw new Error('No video track obtained for screen share');
       }
     } catch (error) {
+      capturedDisplayStream?.getTracks().forEach((track) => track.stop());
       localScreenShareAudioProducer.current?.close();
       localScreenShareAudioProducer.current = undefined;
       localScreenShareProducer.current?.close();
       localScreenShareProducer.current = undefined;
 
+      setScreenShareProducer(null);
       setLocalScreenShare(undefined);
       setLocalScreenShareAudio(undefined);
       logVoice('Error starting screen share stream', { error });

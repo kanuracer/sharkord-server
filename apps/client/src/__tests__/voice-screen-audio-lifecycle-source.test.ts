@@ -16,6 +16,22 @@ describe('screen-share audio lifecycle source contracts', () => {
     expect(provider).toContain('setLocalScreenShareAudio(new MediaStream([audioTrack]))');
   });
 
+  test('stops an acquired display stream when later producer setup fails', () => {
+    const provider = read('components/voice-provider/index.tsx');
+    const start = provider.indexOf('const startScreenShareStream = useCallback');
+    const catchStart = provider.indexOf('} catch (error) {', start);
+    const catchBlock = provider.slice(
+      catchStart,
+      provider.indexOf("logVoice('Error starting screen share stream'", catchStart)
+    );
+
+    expect(provider).toContain('let capturedDisplayStream: MediaStream | undefined;');
+    expect(catchBlock).toContain(
+      'capturedDisplayStream?.getTracks().forEach((track) => track.stop());'
+    );
+    expect(catchBlock).toContain('setScreenShareProducer(null);');
+  });
+
   test('uses dedicated screen-share simulcast encodings and persisted quality', () => {
     const provider = read('components/voice-provider/index.tsx');
     const helpers = read('components/voice-provider/helpers.ts');
