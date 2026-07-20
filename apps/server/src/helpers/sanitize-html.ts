@@ -27,7 +27,13 @@ const sanitizeMessageHtml = (html: string): string => {
     ],
     allowedAttributes: {
       a: ['href', 'target', 'rel'],
-      span: ['data-type', 'data-name', 'data-user-id', 'data-role-id', 'class'],
+      span: [
+        'data-type',
+        'data-name',
+        'data-user-id',
+        'data-channel-id',
+        'class'
+      ],
       img: ['src', 'alt', 'draggable', 'loading', 'align', 'class'],
       code: ['class'],
       pre: ['class'],
@@ -42,6 +48,28 @@ const sanitizeMessageHtml = (html: string): string => {
     // block containers (div, blockquote, section etc) may wrap <p> children, so
     // just discard the wrapper -- the inner <p> tags are already correct structure
     transformTags: {
+      span: (tagName, attribs) => {
+        if (attribs['data-type'] === 'channel-reference') {
+          const channelId = attribs['data-channel-id'];
+
+          if (!channelId || !/^[1-9]\d*$/.test(channelId)) {
+            return { tagName, attribs: {} };
+          }
+
+          return {
+            tagName,
+            attribs: {
+              'data-type': 'channel-reference',
+              'data-channel-id': channelId,
+              class: 'channel-reference'
+            }
+          };
+        }
+
+        delete attribs['data-channel-id'];
+
+        return { tagName, attribs };
+      },
       h1: 'p',
       h2: 'p',
       h3: 'p',

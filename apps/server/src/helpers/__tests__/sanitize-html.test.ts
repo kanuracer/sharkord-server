@@ -156,4 +156,29 @@ describe('sanitize-html', () => {
 
     expect(sanitizeMessageHtml(input)).toBe(input);
   });
+
+  test('should preserve only the exact channel-reference attributes', () => {
+    const input =
+      '<span data-type="channel-reference" data-channel-id="456" class="channel-reference arbitrary" data-name="private-name" onclick="alert(1)">#general</span>';
+
+    expect(sanitizeMessageHtml(input)).toBe(
+      '<span data-type="channel-reference" data-channel-id="456" class="channel-reference">#general</span>'
+    );
+  });
+
+  test('should not permit channel-reference attributes on other span types', () => {
+    const input =
+      '<span data-type="mention" data-channel-id="456" class="channel-reference">@Username</span>';
+
+    expect(sanitizeMessageHtml(input)).toBe(
+      '<span data-type="mention" class="channel-reference">@Username</span>'
+    );
+  });
+
+  test('should reject malformed channel-reference identifiers', () => {
+    const input =
+      '<span data-type="channel-reference" data-channel-id="0" data-name="private-name">#private-name</span>';
+
+    expect(sanitizeMessageHtml(input)).toBe('<span>#private-name</span>');
+  });
 });
