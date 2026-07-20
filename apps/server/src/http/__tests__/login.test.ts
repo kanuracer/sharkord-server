@@ -2,6 +2,8 @@ import { sha256 } from '@sharkord/shared';
 import { describe, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { login } from '../../__tests__/helpers';
 import { TEST_SECRET_TOKEN } from '../../__tests__/seed';
 import { tdb } from '../../__tests__/setup';
@@ -20,6 +22,19 @@ import {
 import { generateTotpCode } from '../../utils/totp';
 
 describe('/login', () => {
+  test('should equalize rejected unknown and legacy-password login work with a cached Argon2 verification', () => {
+    const source = readFileSync(join(import.meta.dir, '..', 'login.ts'), 'utf8');
+    const unknownIdentityBranch = source.indexOf('if (!existingUser)');
+    const legacyPasswordBranch = source.indexOf('} else {', source.indexOf('isPasswordArgon'));
+    const invalidPasswordBranch = source.lastIndexOf('if (!passwordMatches)');
+
+    expect(source).toContain('const DUMMY_ARGON2_PASSWORD_HASH =');
+    expect(source).toContain("'$argon2id$");
+    expect(source).toContain('const verifyDummyPassword = async (password: string) =>');
+    expect(source.indexOf('await verifyDummyPassword(data.password);', unknownIdentityBranch)).toBeGreaterThan(unknownIdentityBranch);
+    expect(source.indexOf('await verifyDummyPassword(data.password);', legacyPasswordBranch)).toBeLessThan(invalidPasswordBranch);
+  });
+
   test('should successfully login with valid credentials', async () => {
     const response = await login('testowner', 'password123');
 

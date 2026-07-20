@@ -73,6 +73,11 @@ const hashAppPassword = async (token: string) => sha256(token);
 const hashRecoveryCode = async (code: string) => sha256(code.trim());
 
 const GENERIC_LOGIN_ERROR = 'Invalid identity, password, or invite';
+const DUMMY_ARGON2_PASSWORD_HASH =
+  '$argon2id$v=19$m=65536,t=2,p=1$PFgKg+ZMd9Nd2ntXxYcvzmd6yVXQ42seaQxDOM0swrw$+HJDQsgHaMU0WusctbYLRYNqIG206hJAK4MNbQtf9qY';
+
+const verifyDummyPassword = async (password: string) =>
+  Bun.password.verify(password, DUMMY_ARGON2_PASSWORD_HASH);
 
 const loginRateLimiter = createRateLimiter({
   maxRequests: config.rateLimiters.joinServer.maxRequests,
@@ -299,6 +304,8 @@ const loginRouteHandler = async (
     const result = await isInviteValid(data.invite);
 
     if (!settings.allowNewUsers && result.error) {
+      await verifyDummyPassword(data.password);
+
       logger.info(
         `${chalk.dim('[Auth]')} Failed login/registration attempt for identity "${data.identity}" due to invalid invite (${result.error}). (IP: ${connectionInfo?.ip || 'unknown'})`
       );
@@ -378,7 +385,9 @@ const loginRouteHandler = async (
 
     passwordMatches = safeCompare(hashInputPassword, existingUser.password);
 
-    if (passwordMatches) {
+    if (!passwordMatches) {
+      await verifyDummyPassword(data.password);
+    } else {
       const argon2Password = await Bun.password.hash(data.password);
 
       await db
