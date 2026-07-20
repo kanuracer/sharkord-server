@@ -7,6 +7,7 @@ import { DATA_PATH } from '../helpers/paths';
 import { createHttpServer } from '../http';
 import { VoiceRuntime } from '../runtimes/voice';
 import { loadMediasoup } from '../utils/mediasoup';
+import { clearVoiceMoveGrantsForTests } from '../helpers/voice-move-grants';
 import { clearRateLimitersForTests } from '../utils/rate-limiters/rate-limiter';
 import { clearAuthenticatedConnectionTokensForTests } from '../utils/ws-auth-sessions';
 import { DRIZZLE_PATH, setTestDb } from './mock-db';
@@ -60,6 +61,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   clearRateLimitersForTests();
+  clearVoiceMoveGrantsForTests();
   clearAuthenticatedConnectionTokensForTests();
   await VoiceRuntime.destroyAllForTests();
 

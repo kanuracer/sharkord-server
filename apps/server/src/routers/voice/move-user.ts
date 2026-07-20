@@ -1,15 +1,22 @@
 import { ChannelPermission, ChannelType, Permission, ServerEvents } from '@sharkord/shared';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
+import { config } from '../../config';
 import { db } from '../../db';
-import { channelUserCan } from '../../db/queries/channels';
+import { publishHiddenChannelToUser } from '../../db/publishers';
+import { userCan } from '../../db/queries/roles';
 import { channels } from '../../db/schema';
+import { grantVoiceMove } from '../../helpers/voice-move-grants';
 import { logger } from '../../logger';
 import { VoiceRuntime } from '../../runtimes/voice';
 import { invariant } from '../../utils/invariant';
-import { protectedProcedure } from '../../utils/trpc';
+import { protectedProcedure, rateLimitedProcedure } from '../../utils/trpc';
 
-const moveUserRoute = protectedProcedure
+const moveUserRoute = rateLimitedProcedure(protectedProcedure, {
+  maxRequests: config.rateLimiters.moveMembers.maxRequests,
+  windowMs: config.rateLimiters.moveMembers.windowMs,
+  logLabel: 'moveMembers'
+})
   .input(
     z.object({
       userId: z.number(),
@@ -17,11 +24,11 @@ const moveUserRoute = protectedProcedure
     })
   )
   .mutation(async ({ input, ctx }) => {
-    await ctx.needsPermission(Permission.JOIN_VOICE_CHANNELS);
-
     const isSelfMove = ctx.user.id === input.userId;
 
-    if (!isSelfMove) {
+    if (isSelfMove) {
+      await ctx.needsPermission(Permission.JOIN_VOICE_CHANNELS);
+    } else {
       await ctx.needsPermission(Permission.MOVE_MEMBERS);
     }
 
@@ -67,50 +74,29 @@ const moveUserRoute = protectedProcedure
       message: 'Direct message voice channels cannot be moved'
     });
 
-    await Promise.all([
-      ctx.needsChannelPermission(sourceChannel.id, ChannelPermission.JOIN),
-      ctx.needsChannelPermission(destinationChannel.id, ChannelPermission.JOIN)
-    ]);
-
-    const targetCanJoinDestination = await channelUserCan(
+    await ctx.needsChannelPermission(
       destinationChannel.id,
-      input.userId,
       ChannelPermission.JOIN
     );
 
-    invariant(targetCanJoinDestination, {
+    const targetCanUseVoice = await userCan(
+      input.userId,
+      Permission.JOIN_VOICE_CHANNELS
+    );
+
+    invariant(targetCanUseVoice, {
       code: 'FORBIDDEN',
-      message: 'Target user cannot join the destination voice channel'
+      message: 'Target user is not allowed to use voice channels'
     });
 
-    const destinationRuntime = VoiceRuntime.findById(destinationChannel.id);
-
-    invariant(destinationRuntime, {
-      code: 'INTERNAL_SERVER_ERROR',
-      message: 'Voice runtime not found for destination channel'
+    grantVoiceMove(input.userId, destinationChannel.id);
+    await publishHiddenChannelToUser(input.userId, destinationChannel.id);
+    ctx.pubsub.publishFor(input.userId, ServerEvents.USER_VOICE_MOVED, {
+      destinationChannelId: destinationChannel.id
     });
-
-    const previousState = sourceRuntime.getUserState(input.userId);
-
-    sourceRuntime.removeUser(input.userId);
-    destinationRuntime.addUser(input.userId, previousState);
-
-    ctx.pubsub.publish(ServerEvents.USER_LEAVE_VOICE, {
-      channelId: sourceChannel.id,
-      userId: input.userId
-    });
-    ctx.pubsub.publish(ServerEvents.USER_JOIN_VOICE, {
-      channelId: destinationChannel.id,
-      userId: input.userId,
-      state: previousState
-    });
-
-    if (isSelfMove) {
-      ctx.currentVoiceChannelId = destinationChannel.id;
-    }
 
     logger.info(
-      '%s moved user %d from voice channel %s to %s',
+      '%s directed user %d from voice channel %s to %s',
       ctx.user.name,
       input.userId,
       sourceChannel.name,

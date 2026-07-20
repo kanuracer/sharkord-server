@@ -31,6 +31,10 @@ const onUserDisconnectVoiceRoute = protectedProcedure.subscription(
   }
 );
 
+const onUserMovedVoiceRoute = protectedProcedure.subscription(async ({ ctx }) => {
+  return ctx.pubsub.subscribeFor(ctx.userId, ServerEvents.USER_VOICE_MOVED);
+});
+
 const onUserUpdateVoiceStateRoute = protectedProcedure.subscription(
   async ({ ctx }) => {
     return ctx.pubsub.subscribe(ServerEvents.USER_VOICE_STATE_UPDATE);
@@ -129,6 +133,7 @@ export {
   onUserDisconnectVoiceRoute,
   onUserJoinVoiceRoute,
   onUserLeaveVoiceRoute,
+  onUserMovedVoiceRoute,
   onUserUpdateVoiceStateRoute,
   onVoiceAddExternalStreamRoute,
   onVoiceNewProducerRoute,

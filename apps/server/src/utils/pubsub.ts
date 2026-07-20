@@ -75,6 +75,9 @@ type Events = {
     userId: number;
     moderatorId: number;
   };
+  [ServerEvents.USER_VOICE_MOVED]: {
+    destinationChannelId: number;
+  };
   [ServerEvents.USER_VOICE_STATE_UPDATE]: {
     channelId: number;
     userId: number;

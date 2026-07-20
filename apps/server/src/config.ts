@@ -77,6 +77,10 @@ const zConfig = z.object({
       maxRequests: z.coerce.number().int().positive(),
       windowMs: z.coerce.number().int().positive()
     }),
+    moveMembers: z.object({
+      maxRequests: z.coerce.number().int().positive(),
+      windowMs: z.coerce.number().int().positive()
+    }),
     joinServer: z.object({
       maxRequests: z.coerce.number().int().positive(),
       windowMs: z.coerce.number().int().positive()
@@ -147,6 +151,10 @@ const defaultConfig: TConfig = {
       windowMs: 60_000
     },
     joinVoiceChannel: {
+      maxRequests: 20,
+      windowMs: 60_000
+    },
+    moveMembers: {
       maxRequests: 20,
       windowMs: 60_000
     },

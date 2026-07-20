@@ -1,6 +1,6 @@
-import { ChannelType, Permission, StreamKind } from '@sharkord/shared';
+import { ChannelType, Permission, ServerEvents, StreamKind } from '@sharkord/shared';
 import { describe, expect, test } from 'bun:test';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { initTest } from '../../__tests__/helpers';
 import { db } from '../../db';
 import {
@@ -11,6 +11,7 @@ import {
   userRoles
 } from '../../db/schema';
 import { VoiceRuntime } from '../../runtimes/voice';
+import { pubsub } from '../../utils/pubsub';
 
 const clearVoiceUser = (userId: number) => {
   VoiceRuntime.findRuntimeByUserId(userId)?.removeUser(userId);
@@ -64,6 +65,15 @@ describe('voice router', () => {
 
     await caller.voice.moveUser({ userId: 2, destinationChannelId });
 
+    expect(VoiceRuntime.findById(sourceChannelId)?.getUser(2)).toBeDefined();
+    expect(VoiceRuntime.findById(destinationChannelId)?.getUser(2)).toBeUndefined();
+
+    await caller.voice.leave();
+    await caller.voice.join({
+      channelId: destinationChannelId,
+      state: { micMuted: true, soundMuted: false }
+    });
+
     expect(VoiceRuntime.findById(sourceChannelId)?.getUser(2)).toBeUndefined();
     expect(
       VoiceRuntime.findById(destinationChannelId)?.getUser(2)?.state
@@ -99,18 +109,131 @@ describe('voice router', () => {
 
     await ownerCaller.voice.moveUser({ userId: 2, destinationChannelId });
 
-    expect(VoiceRuntime.findById(sourceChannelId)?.getUser(2)).toBeUndefined();
-    expect(
-      VoiceRuntime.findById(destinationChannelId)?.getUser(2)?.state
-    ).toMatchObject({
-      micMuted: false,
-      soundMuted: true
+    expect(VoiceRuntime.findById(sourceChannelId)?.getUser(2)).toBeDefined();
+    expect(VoiceRuntime.findById(destinationChannelId)?.getUser(2)).toBeUndefined();
+
+    await memberCaller.voice.leave();
+    await memberCaller.voice.join({
+      channelId: destinationChannelId,
+      state: { micMuted: false, soundMuted: true }
     });
 
     await memberCaller.voice.updateState({ soundMuted: false });
     expect(
       VoiceRuntime.findById(destinationChannelId)?.getUserState(2).soundMuted
     ).toBe(false);
+  });
+
+  test('should grant and privately notify a moved user before that user reconnects', async () => {
+    const { caller: ownerCaller } = await initTest(1);
+    const sourceChannelId = await ownerCaller.channels.add({
+      type: ChannelType.VOICE,
+      name: 'Moderated Move Source',
+      categoryId: 2
+    });
+    const destinationChannelId = await ownerCaller.channels.add({
+      type: ChannelType.VOICE,
+      name: 'Hidden Move Dest',
+      categoryId: 2
+    });
+    await db
+      .update(channels)
+      .set({ private: true })
+      .where(eq(channels.id, destinationChannelId));
+
+    const { caller: targetCaller } = await initTest(2);
+    await targetCaller.voice.join({
+      channelId: sourceChannelId,
+      state: { micMuted: true, soundMuted: false }
+    });
+
+    const movedEvents: Array<{ destinationChannelId: number }> = [];
+    const targetChannels: number[] = [];
+    const targetChannelDeletes: number[] = [];
+    const otherChannels: number[] = [];
+    const movedSubscription = pubsub
+      .subscribeFor(2, ServerEvents.USER_VOICE_MOVED)
+      .subscribe({ next: (event) => movedEvents.push(event) });
+    const targetChannelSubscription = pubsub
+      .subscribeFor(2, ServerEvents.CHANNEL_CREATE)
+      .subscribe({ next: (channel) => targetChannels.push(channel.id) });
+    const targetChannelDeleteSubscription = pubsub
+      .subscribeFor(2, ServerEvents.CHANNEL_DELETE)
+      .subscribe({ next: (channelId) => targetChannelDeletes.push(channelId) });
+    const otherChannelSubscription = pubsub
+      .subscribeFor(3, ServerEvents.CHANNEL_CREATE)
+      .subscribe({ next: (channel) => otherChannels.push(channel.id) });
+
+    await ownerCaller.voice.moveUser({ userId: 2, destinationChannelId });
+
+    expect(movedEvents).toEqual([{ destinationChannelId }]);
+    expect(targetChannels).toEqual([destinationChannelId]);
+    expect(otherChannels).toEqual([]);
+    expect(VoiceRuntime.findById(sourceChannelId)?.getUser(2)).toBeDefined();
+    expect(VoiceRuntime.findById(destinationChannelId)?.getUser(2)).toBeUndefined();
+
+    await targetCaller.voice.leave();
+    await targetCaller.voice.join({
+      channelId: destinationChannelId,
+      state: { micMuted: true, soundMuted: false }
+    });
+
+    expect(VoiceRuntime.findById(sourceChannelId)?.getUser(2)).toBeUndefined();
+    expect(VoiceRuntime.findById(destinationChannelId)?.getUser(2)?.state).toMatchObject({
+      micMuted: true,
+      soundMuted: false
+    });
+
+    await targetCaller.voice.leave();
+    expect(targetChannelDeletes).toEqual([destinationChannelId]);
+    await expect(
+      targetCaller.voice.join({
+        channelId: destinationChannelId,
+        state: { micMuted: true, soundMuted: false }
+      })
+    ).rejects.toThrow('Insufficient channel permissions');
+
+    movedSubscription.unsubscribe();
+    targetChannelSubscription.unsubscribe();
+    targetChannelDeleteSubscription.unsubscribe();
+    otherChannelSubscription.unsubscribe();
+  });
+
+  test('should reject a moderator move when the target lacks JOIN_VOICE_CHANNELS', async () => {
+    const { caller: ownerCaller } = await initTest(1);
+    const sourceChannelId = await ownerCaller.channels.add({
+      type: ChannelType.VOICE,
+      name: 'No Voice Source',
+      categoryId: 2
+    });
+    const destinationChannelId = await ownerCaller.channels.add({
+      type: ChannelType.VOICE,
+      name: 'No Voice Destination',
+      categoryId: 2
+    });
+    const { caller: targetCaller } = await initTest(2);
+    await targetCaller.voice.join({
+      channelId: sourceChannelId,
+      state: { micMuted: false, soundMuted: false }
+    });
+
+    const defaultRole = await db
+      .select({ id: roles.id })
+      .from(roles)
+      .where(eq(roles.isDefault, true))
+      .get();
+    await db
+      .delete(rolePermissions)
+      .where(
+        and(
+          eq(rolePermissions.roleId, defaultRole!.id),
+          eq(rolePermissions.permission, Permission.JOIN_VOICE_CHANNELS)
+        )
+      );
+
+    await expect(
+      ownerCaller.voice.moveUser({ userId: 2, destinationChannelId })
+    ).rejects.toThrow('Target user is not allowed to use voice channels');
   });
 
   test('should allow owners to disconnect another user from voice', async () => {
@@ -179,13 +302,8 @@ describe('voice router', () => {
     const { caller: moverCaller } = await initTest(3);
     await moverCaller.voice.moveUser({ userId: 2, destinationChannelId });
 
-    expect(VoiceRuntime.findById(sourceChannelId)?.getUser(2)).toBeUndefined();
-    expect(
-      VoiceRuntime.findById(destinationChannelId)?.getUser(2)?.state
-    ).toMatchObject({
-      micMuted: false,
-      soundMuted: true
-    });
+    expect(VoiceRuntime.findById(sourceChannelId)?.getUser(2)).toBeDefined();
+    expect(VoiceRuntime.findById(destinationChannelId)?.getUser(2)).toBeUndefined();
   });
 
   test('should allow users with MOVE_MEMBERS to disconnect another user', async () => {

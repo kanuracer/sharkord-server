@@ -8,7 +8,9 @@ import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { config } from '../../config';
 import { db } from '../../db';
+import { channelUserCan } from '../../db/queries/channels';
 import { channels } from '../../db/schema';
+import { consumeVoiceMoveGrant } from '../../helpers/voice-move-grants';
 import { logger } from '../../logger';
 import { VoiceRuntime } from '../../runtimes/voice';
 import { invariant } from '../../utils/invariant';
@@ -29,10 +31,12 @@ const joinVoiceRoute = rateLimitedProcedure(protectedProcedure, {
     })
   )
   .mutation(async ({ input, ctx }) => {
-    await Promise.all([
-      ctx.needsPermission(Permission.JOIN_VOICE_CHANNELS),
-      ctx.needsChannelPermission(input.channelId, ChannelPermission.JOIN)
-    ]);
+    await ctx.needsPermission(Permission.JOIN_VOICE_CHANNELS);
+    const hasMoveGrant = consumeVoiceMoveGrant(ctx.user.id, input.channelId);
+
+    if (!hasMoveGrant) {
+      await ctx.needsChannelPermission(input.channelId, ChannelPermission.JOIN);
+    }
 
     const channel = await db
       .select()
@@ -48,6 +52,17 @@ const joinVoiceRoute = rateLimitedProcedure(protectedProcedure, {
     invariant(channel.type === ChannelType.VOICE, {
       code: 'BAD_REQUEST',
       message: 'Channel is not a voice channel'
+    });
+
+    const hasJoinPermission = await channelUserCan(
+      input.channelId,
+      ctx.user.id,
+      ChannelPermission.JOIN
+    );
+
+    invariant(hasJoinPermission || hasMoveGrant, {
+      code: 'FORBIDDEN',
+      message: 'Insufficient channel permissions'
     });
 
     const userAlreadyInVoiceChannel = VoiceRuntime.findRuntimeByUserId(
