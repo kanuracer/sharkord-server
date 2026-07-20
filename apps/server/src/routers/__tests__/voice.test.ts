@@ -199,6 +199,46 @@ describe('voice router', () => {
     otherChannelSubscription.unsubscribe();
   });
 
+  test('should revoke a temporarily published private channel on moderator disconnect', async () => {
+    const { caller: ownerCaller } = await initTest(1);
+    const sourceChannelId = await ownerCaller.channels.add({
+      type: ChannelType.VOICE,
+      name: 'Disconnect Move Source',
+      categoryId: 2
+    });
+    const destinationChannelId = await ownerCaller.channels.add({
+      type: ChannelType.VOICE,
+      name: 'Disconnect Hidden Dest',
+      categoryId: 2
+    });
+    await db
+      .update(channels)
+      .set({ private: true })
+      .where(eq(channels.id, destinationChannelId));
+
+    const { caller: targetCaller } = await initTest(2);
+    await targetCaller.voice.join({
+      channelId: sourceChannelId,
+      state: { micMuted: true, soundMuted: false }
+    });
+
+    const targetChannelDeletes: number[] = [];
+    const targetChannelDeleteSubscription = pubsub
+      .subscribeFor(2, ServerEvents.CHANNEL_DELETE)
+      .subscribe({ next: (channelId) => targetChannelDeletes.push(channelId) });
+
+    await ownerCaller.voice.moveUser({ userId: 2, destinationChannelId });
+    await targetCaller.voice.leave();
+    await targetCaller.voice.join({
+      channelId: destinationChannelId,
+      state: { micMuted: true, soundMuted: false }
+    });
+    await ownerCaller.voice.disconnectUser({ userId: 2 });
+
+    expect(targetChannelDeletes).toEqual([destinationChannelId]);
+    targetChannelDeleteSubscription.unsubscribe();
+  });
+
   test('should reject a moderator move when the target lacks JOIN_VOICE_CHANNELS', async () => {
     const { caller: ownerCaller } = await initTest(1);
     const sourceChannelId = await ownerCaller.channels.add({

@@ -8,6 +8,7 @@ import {
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../../db';
+import { unpublishHiddenChannelFromUser } from '../../db/publishers';
 import { channels } from '../../db/schema';
 import { logger } from '../../logger';
 import { enqueueActivityLog } from '../../queues/activity-log';
@@ -66,6 +67,7 @@ const disconnectUserRoute = protectedProcedure
     });
 
     runtime.removeUser(input.userId);
+    await unpublishHiddenChannelFromUser(input.userId, channel.id);
 
     ctx.pubsub.publish(ServerEvents.USER_LEAVE_VOICE, {
       channelId: channel.id,

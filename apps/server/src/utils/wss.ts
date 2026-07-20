@@ -17,6 +17,7 @@ import { eq } from 'drizzle-orm';
 import http from 'http';
 import { WebSocket, WebSocketServer } from 'ws';
 import { db } from '../db';
+import { unpublishHiddenChannelFromUser } from '../db/publishers';
 import { getAllChannelUserPermissions } from '../db/queries/channels';
 import { isUserDmParticipant } from '../db/queries/dms';
 import { hasUserJoinedBefore } from '../db/queries/logins';
@@ -307,6 +308,7 @@ const createWsServer = async (server: http.Server) => {
 
             if (voiceRuntime) {
               voiceRuntime.removeUser(user.id);
+              await unpublishHiddenChannelFromUser(user.id, voiceRuntime.id);
 
               pubsub.publish(ServerEvents.USER_LEAVE_VOICE, {
                 channelId: voiceRuntime.id,
