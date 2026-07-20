@@ -10,7 +10,11 @@ import { config } from '../../config';
 import { db } from '../../db';
 import { channelUserCan } from '../../db/queries/channels';
 import { channels } from '../../db/schema';
-import { consumeVoiceMoveGrant } from '../../helpers/voice-move-grants';
+import {
+  consumeVoiceMoveGrant,
+  hasVoiceMoveGrant,
+  withVoiceMoveLock
+} from '../../helpers/voice-move-grants';
 import { logger } from '../../logger';
 import { VoiceRuntime } from '../../runtimes/voice';
 import { invariant } from '../../utils/invariant';
@@ -32,73 +36,76 @@ const joinVoiceRoute = rateLimitedProcedure(protectedProcedure, {
   )
   .mutation(async ({ input, ctx }) => {
     await ctx.needsPermission(Permission.JOIN_VOICE_CHANNELS);
-    const hasMoveGrant = consumeVoiceMoveGrant(ctx.user.id, input.channelId);
+    return withVoiceMoveLock(ctx.user.id, async () => {
+      const hasPendingMoveGrant = hasVoiceMoveGrant(ctx.user.id, input.channelId);
+      if (!hasPendingMoveGrant) {
+        await ctx.needsChannelPermission(input.channelId, ChannelPermission.JOIN);
+      }
 
-    if (!hasMoveGrant) {
-      await ctx.needsChannelPermission(input.channelId, ChannelPermission.JOIN);
-    }
+      const channel = await db
+        .select()
+        .from(channels)
+        .where(eq(channels.id, input.channelId))
+        .get();
 
-    const channel = await db
-      .select()
-      .from(channels)
-      .where(eq(channels.id, input.channelId))
-      .get();
+      invariant(channel, {
+        code: 'NOT_FOUND',
+        message: 'Channel not found'
+      });
 
-    invariant(channel, {
-      code: 'NOT_FOUND',
-      message: 'Channel not found'
+      invariant(channel.type === ChannelType.VOICE, {
+        code: 'BAD_REQUEST',
+        message: 'Channel is not a voice channel'
+      });
+
+      const hasJoinPermission = await channelUserCan(
+        input.channelId,
+        ctx.user.id,
+        ChannelPermission.JOIN
+      );
+      const userAlreadyInVoiceChannel = VoiceRuntime.findRuntimeByUserId(
+        ctx.user.id
+      );
+
+      invariant(!userAlreadyInVoiceChannel, {
+        code: 'BAD_REQUEST',
+        message: 'User already in a voice channel'
+      });
+
+      const canJoin =
+        hasJoinPermission ||
+        (hasPendingMoveGrant && consumeVoiceMoveGrant(ctx.user.id, input.channelId));
+      invariant(canJoin, {
+        code: 'FORBIDDEN',
+        message: 'Insufficient channel permissions'
+      });
+
+      const runtime = VoiceRuntime.findById(input.channelId);
+
+      invariant(runtime, {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Voice runtime not found for this channel'
+      });
+
+      runtime.addUser(ctx.user.id, input.state);
+
+      const state = runtime.getUserState(ctx.user.id);
+
+      ctx.currentVoiceChannelId = channel.id;
+      ctx.pubsub.publish(ServerEvents.USER_JOIN_VOICE, {
+        channelId: input.channelId,
+        userId: ctx.user.id,
+        state
+      });
+
+      logger.info('%s joined voice channel %s', ctx.user.name, channel.name);
+
+      const router = runtime.getRouter();
+
+      return {
+        routerRtpCapabilities: router.rtpCapabilities
+      };
     });
-
-    invariant(channel.type === ChannelType.VOICE, {
-      code: 'BAD_REQUEST',
-      message: 'Channel is not a voice channel'
-    });
-
-    const hasJoinPermission = await channelUserCan(
-      input.channelId,
-      ctx.user.id,
-      ChannelPermission.JOIN
-    );
-
-    invariant(hasJoinPermission || hasMoveGrant, {
-      code: 'FORBIDDEN',
-      message: 'Insufficient channel permissions'
-    });
-
-    const userAlreadyInVoiceChannel = VoiceRuntime.findRuntimeByUserId(
-      ctx.user.id
-    );
-
-    invariant(!userAlreadyInVoiceChannel, {
-      code: 'BAD_REQUEST',
-      message: 'User already in a voice channel'
-    });
-
-    const runtime = VoiceRuntime.findById(input.channelId);
-
-    invariant(runtime, {
-      code: 'INTERNAL_SERVER_ERROR',
-      message: 'Voice runtime not found for this channel'
-    });
-
-    runtime.addUser(ctx.user.id, input.state);
-
-    const state = runtime.getUserState(ctx.user.id);
-
-    ctx.currentVoiceChannelId = channel.id;
-    ctx.pubsub.publish(ServerEvents.USER_JOIN_VOICE, {
-      channelId: input.channelId,
-      userId: ctx.user.id,
-      state
-    });
-
-    logger.info('%s joined voice channel %s', ctx.user.name, channel.name);
-
-    const router = runtime.getRouter();
-
-    return {
-      routerRtpCapabilities: router.rtpCapabilities
-    };
   });
 
 export { joinVoiceRoute };

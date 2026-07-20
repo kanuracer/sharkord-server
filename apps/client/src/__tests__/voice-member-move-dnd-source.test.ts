@@ -15,18 +15,37 @@ describe('voice member move drag-and-drop client source contracts', () => {
     expect(actions).not.toMatch(/moveUserToVoiceChannel[\s\S]{0,600}voiceMap/);
   });
 
-  test('reconnects a moved client through the normal voice join and provider init path', () => {
+  test('reconnects only matching directed moves through normal join/provider init and cleans failures', () => {
     const subscriptions = read('features/server/voice/subscriptions.ts');
     const provider = read('components/voice-provider/index.tsx');
     const actions = read('features/server/voice/actions.ts');
 
     expect(subscriptions).toContain('trpc.voice.onMoved.subscribe');
-    expect(subscriptions).toContain('destinationChannelId');
-    expect(subscriptions).toContain('reconnectMovedVoice');
+    expect(subscriptions).toContain('sourceChannelId');
+    expect(subscriptions).toContain('Number.isSafeInteger(sourceChannelId)');
+    expect(subscriptions).toContain('reconnectMovedVoice(sourceChannelId, destinationChannelId, init)');
     expect(provider).toContain('subscribeToMovedVoice(init)');
+    expect(actions).toContain('currentVoiceChannelId !== sourceChannelId');
     expect(actions).toContain('joinVoice(channel.id)');
     expect(actions).toContain('await init(response, channel.id)');
-    expect(subscriptions).not.toMatch(/onMoved[\s\S]{0,500}voiceMap/);
+    expect(actions).toContain("await leaveVoice({ reason: 'directed_move_init_failed' })");
+    expect(actions).toContain('setCurrentVoiceChannelId(channelId);');
+    expect(actions.indexOf('setCurrentVoiceChannelId(channelId);')).toBeGreaterThan(
+      actions.indexOf('await client.voice.join.mutate')
+    );
+    expect(subscriptions).not.toMatch(/onMoved[\s\S]{0,650}voiceMap/);
+  });
+
+  test('serializes directed moves and exposes context actions to keyboard users', () => {
+    const actions = read('features/server/voice/actions.ts');
+    const user = read('components/left-sidebar/voice-user.tsx');
+
+    expect(actions).toContain('let movedVoiceReconnectQueue = Promise.resolve();');
+    expect(actions).toContain('movedVoiceReconnectQueue = reconnect.catch(() => undefined);');
+    expect(user).toContain('tabIndex={0}');
+    expect(user).toContain("event.key !== 'ContextMenu'");
+    expect(user).toContain("event.key === 'F10'");
+    expect(user).toContain("new MouseEvent('contextmenu'");
   });
 
   test('allows privileged native member drags and validates voice-only drops', () => {

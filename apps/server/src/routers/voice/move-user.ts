@@ -3,10 +3,17 @@ import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { config } from '../../config';
 import { db } from '../../db';
-import { publishHiddenChannelToUser } from '../../db/publishers';
+import {
+  publishHiddenChannelToUser,
+  unpublishHiddenChannelFromUser
+} from '../../db/publishers';
 import { userCan } from '../../db/queries/roles';
 import { channels } from '../../db/schema';
-import { grantVoiceMove } from '../../helpers/voice-move-grants';
+import {
+  expireVoiceMoveGrant,
+  grantVoiceMove,
+  withVoiceMoveLock
+} from '../../helpers/voice-move-grants';
 import { logger } from '../../logger';
 import { VoiceRuntime } from '../../runtimes/voice';
 import { invariant } from '../../utils/invariant';
@@ -89,10 +96,36 @@ const moveUserRoute = rateLimitedProcedure(protectedProcedure, {
       message: 'Target user is not allowed to use voice channels'
     });
 
-    grantVoiceMove(input.userId, destinationChannel.id);
-    await publishHiddenChannelToUser(input.userId, destinationChannel.id);
-    ctx.pubsub.publishFor(input.userId, ServerEvents.USER_VOICE_MOVED, {
-      destinationChannelId: destinationChannel.id
+    await withVoiceMoveLock(input.userId, async () => {
+      const grant = grantVoiceMove(input.userId, destinationChannel.id);
+      if (
+        grant.previousChannelId &&
+        grant.previousChannelId !== destinationChannel.id
+      ) {
+        await unpublishHiddenChannelFromUser(input.userId, grant.previousChannelId);
+      }
+      await publishHiddenChannelToUser(input.userId, destinationChannel.id);
+      const expiryTimer = setTimeout(() => {
+        const expiredChannelId = expireVoiceMoveGrant(input.userId, grant.token);
+        if (!expiredChannelId) return;
+
+        void unpublishHiddenChannelFromUser(input.userId, expiredChannelId).catch(
+          (error) => {
+            logger.error(
+              'Failed to revoke expired voice move channel %d for user %d: %s',
+              expiredChannelId,
+              input.userId,
+              error
+            );
+          }
+        );
+      }, Math.max(0, grant.expiresAt - Date.now()));
+      expiryTimer.unref();
+
+      ctx.pubsub.publishFor(input.userId, ServerEvents.USER_VOICE_MOVED, {
+        sourceChannelId: sourceChannel.id,
+        destinationChannelId: destinationChannel.id
+      });
     });
 
     logger.info(

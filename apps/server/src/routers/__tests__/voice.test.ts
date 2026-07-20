@@ -147,7 +147,10 @@ describe('voice router', () => {
       state: { micMuted: true, soundMuted: false }
     });
 
-    const movedEvents: Array<{ destinationChannelId: number }> = [];
+    const movedEvents: Array<{
+      sourceChannelId: number;
+      destinationChannelId: number;
+    }> = [];
     const targetChannels: number[] = [];
     const targetChannelDeletes: number[] = [];
     const otherChannels: number[] = [];
@@ -166,11 +169,18 @@ describe('voice router', () => {
 
     await ownerCaller.voice.moveUser({ userId: 2, destinationChannelId });
 
-    expect(movedEvents).toEqual([{ destinationChannelId }]);
+    expect(movedEvents).toEqual([{ sourceChannelId, destinationChannelId }]);
     expect(targetChannels).toEqual([destinationChannelId]);
     expect(otherChannels).toEqual([]);
     expect(VoiceRuntime.findById(sourceChannelId)?.getUser(2)).toBeDefined();
     expect(VoiceRuntime.findById(destinationChannelId)?.getUser(2)).toBeUndefined();
+
+    await expect(
+      targetCaller.voice.join({
+        channelId: destinationChannelId,
+        state: { micMuted: true, soundMuted: false }
+      })
+    ).rejects.toThrow('User already in a voice channel');
 
     await targetCaller.voice.leave();
     await targetCaller.voice.join({

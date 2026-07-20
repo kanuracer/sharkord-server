@@ -34,6 +34,8 @@ import { ownVoiceStateSelector } from './selectors';
 
 export const VOICE_USER_DND_MIME = 'application/x-sharkord-voice-user';
 
+let movedVoiceReconnectQueue = Promise.resolve();
+
 export const addUserToVoiceChannel = (
   userId: number,
   channelId: number,
@@ -166,8 +168,6 @@ export const joinVoice = async (
     await leaveVoice({ reason: 'switch_channel' });
   }
 
-  setCurrentVoiceChannelId(channelId);
-
   const { micMuted, soundMuted } = ownVoiceStateSelector(state);
   const client = getTRPCClient();
 
@@ -177,6 +177,7 @@ export const joinVoice = async (
       state: { micMuted, soundMuted }
     });
 
+    setCurrentVoiceChannelId(channelId);
     retargetOpenVoiceChatSidebar(channelId);
 
     return routerRtpCapabilities;
@@ -203,27 +204,56 @@ export const moveUserToVoiceChannel = async (
   }
 };
 
-export const reconnectMovedVoice = async (
+export const reconnectMovedVoice = (
+  sourceChannelId: number,
+  destinationChannelId: number,
+  init: (routerRtpCapabilities: RtpCapabilities, channelId: number) => Promise<void>
+): Promise<void> => {
+  const reconnect = movedVoiceReconnectQueue.then(() =>
+    reconnectMovedVoiceNow(sourceChannelId, destinationChannelId, init)
+  );
+  movedVoiceReconnectQueue = reconnect.catch(() => undefined);
+  return reconnect;
+};
+
+const reconnectMovedVoiceNow = async (
+  sourceChannelId: number,
   destinationChannelId: number,
   init: (routerRtpCapabilities: RtpCapabilities, channelId: number) => Promise<void>
 ): Promise<void> => {
   const state = store.getState();
+  const currentVoiceChannelId = currentVoiceChannelIdSelector(state);
+
+  if (currentVoiceChannelId !== sourceChannelId) {
+    logVoice('Ignoring stale directed voice move', {
+      sourceChannelId,
+      destinationChannelId,
+      currentVoiceChannelId
+    });
+    return;
+  }
+
   const channel = channelByIdSelector(state, destinationChannelId);
 
   if (!channel || channel.type !== ChannelType.VOICE) {
     logVoice('Ignoring moved voice event for unavailable voice channel', {
+      sourceChannelId,
       destinationChannelId
     });
     return;
   }
 
-  logVoice('Reconnecting after directed voice move', { destinationChannelId });
+  logVoice('Reconnecting after directed voice move', {
+    sourceChannelId,
+    destinationChannelId
+  });
   setSelectedChannelId(channel.id);
   const response = await joinVoice(channel.id);
 
   if (!response) {
     setSelectedChannelId(undefined);
     logVoice('Failed to join directed voice move destination', {
+      sourceChannelId,
       destinationChannelId
     });
     return;
@@ -232,9 +262,10 @@ export const reconnectMovedVoice = async (
   try {
     await init(response, channel.id);
   } catch (error) {
-    setSelectedChannelId(undefined);
+    await leaveVoice({ reason: 'directed_move_init_failed' });
     logVoice('Failed to initialize directed voice move destination', {
       error,
+      sourceChannelId,
       destinationChannelId
     });
     toast.error('Failed to initialize voice connection');
@@ -244,6 +275,7 @@ export const reconnectMovedVoice = async (
 export type TLeaveVoiceReason =
   | 'user_disconnect_button'
   | 'switch_channel'
+  | 'directed_move_init_failed'
   | 'unknown';
 
 export const leaveVoice = async (options?: {

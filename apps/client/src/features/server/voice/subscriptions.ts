@@ -16,9 +16,29 @@ const subscribeToMovedVoice = (
 ) => {
   const trpc = getTRPCClient();
   const onMovedSub = trpc.voice.onMoved.subscribe(undefined, {
-    onData: ({ destinationChannelId }) => {
-      logDebug('[EVENTS] voice.onMoved', { destinationChannelId });
-      void reconnectMovedVoice(destinationChannelId, init);
+    onData: (payload) => {
+      if (!payload || typeof payload !== 'object') {
+        logDebug('[EVENTS] ignoring malformed voice.onMoved payload');
+        return;
+      }
+
+      const { sourceChannelId, destinationChannelId } = payload;
+
+      if (
+        !Number.isSafeInteger(sourceChannelId) ||
+        sourceChannelId <= 0 ||
+        !Number.isSafeInteger(destinationChannelId) ||
+        destinationChannelId <= 0
+      ) {
+        logDebug('[EVENTS] ignoring invalid voice.onMoved channel IDs', payload);
+        return;
+      }
+
+      logDebug('[EVENTS] voice.onMoved', {
+        sourceChannelId,
+        destinationChannelId
+      });
+      void reconnectMovedVoice(sourceChannelId, destinationChannelId, init);
     },
     onError: (err) => console.error('onMoved voice subscription error:', err)
   });

@@ -46,6 +46,26 @@ const VoiceUser = memo(
       event.dataTransfer.effectAllowed = 'move';
     };
 
+    const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (
+        event.key !== 'ContextMenu' &&
+        !(event.key === 'F10' && event.shiftKey)
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      const bounds = event.currentTarget.getBoundingClientRect();
+      event.currentTarget.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: bounds.left + bounds.width / 2,
+          clientY: bounds.top + bounds.height / 2
+        })
+      );
+    };
+
     const userRow = (
       <div
         className={cn(
@@ -53,8 +73,10 @@ const VoiceUser = memo(
           canMoveUser && 'cursor-grab active:cursor-grabbing'
         )}
         draggable={canMoveUser}
+        tabIndex={0}
         aria-grabbed={canMoveUser || undefined}
         onDragStart={onDragStart}
+        onKeyDown={onKeyDown}
       >
         <UserAvatar
           userId={user.id}
@@ -104,7 +126,12 @@ const VoiceUser = memo(
     }
 
     return (
-      <StreamContextMenu type="user" userId={user.id} name={user.name}>
+      <StreamContextMenu
+        type="user"
+        userId={user.id}
+        name={user.name}
+        sourceChannelId={sourceChannelId}
+      >
         <UserPopover userId={user.id}>{userRow}</UserPopover>
       </StreamContextMenu>
     );

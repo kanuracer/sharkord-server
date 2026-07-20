@@ -1,6 +1,6 @@
 {
   "name": "@sharkord/server",
-  "version": "0.0.24-kr.10",
+  "version": "0.0.24-kr.11",
   "module": "src/index.ts",
   "type": "module",
   "private": true,
@@ -57,10 +57,10 @@
     "semver": "^7.7.3",
     "string-argv": "^0.3.2",
     "systeminformation": "^5.31.7",
-    "ua-parser-js": "^2.0.6",
+    "ua-parser-js": "^2.0.10",
     "winston": "^3.17.0",
     "ws": "^8.21.0",
-    "yauzl": "^3.2.0",
+    "yauzl": "^3.4.0",
     "yazl": "^3.3.1",
     "zod": "^4.1.11"
   }

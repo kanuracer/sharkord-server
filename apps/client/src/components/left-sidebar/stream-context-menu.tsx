@@ -1,9 +1,11 @@
 import { UserAvatar } from '@/components/user-avatar';
 import { useStreamVolumeControl } from '@/components/voice-provider/hooks/use-stream-volume-control';
 import { requestConfirmation } from '@/features/dialogs/actions';
+import { useChannels } from '@/features/server/channels/hooks';
 import { useCan } from '@/features/server/hooks';
+import { moveUserToVoiceChannel } from '@/features/server/voice/actions';
 import { getTRPCClient } from '@/lib/trpc';
-import { Permission } from '@sharkord/shared';
+import { ChannelType, Permission } from '@sharkord/shared';
 import {
   Button,
   ContextMenu,
@@ -23,6 +25,7 @@ type TUserContextMenuProps = {
   type: 'user';
   userId: number;
   name: string;
+  sourceChannelId: number;
 };
 
 type TExternalContextMenuProps = {
@@ -40,6 +43,16 @@ type TStreamContextMenuProps = {
 const StreamContextMenu = (props: TStreamContextMenuProps) => {
   const { t } = useTranslation('sidebar');
   const can = useCan();
+  const channels = useChannels();
+  const voiceMoveTargets =
+    props.type === 'user'
+      ? channels.filter(
+          (channel) =>
+            channel.type === ChannelType.VOICE &&
+            !channel.isDm &&
+            channel.id !== props.sourceChannelId
+        )
+      : [];
 
   const { volume, isMuted, setVolume, toggleMute } = useStreamVolumeControl(
     props.type === 'user'
@@ -107,6 +120,18 @@ const StreamContextMenu = (props: TStreamContextMenuProps) => {
     }
   }, [props, t]);
 
+  const moveUser = useCallback(
+    async (channelId: number, channelName: string) => {
+      if (props.type !== 'user') return;
+
+      const moved = await moveUserToVoiceChannel(props.userId, channelId);
+      if (moved) {
+        toast.success(`Move requested to ${channelName}`);
+      }
+    },
+    [props]
+  );
+
   return (
     <ContextMenu>
       <ContextMenuTrigger>{props.children}</ContextMenuTrigger>
@@ -149,6 +174,14 @@ const StreamContextMenu = (props: TStreamContextMenuProps) => {
                 <PhoneOff className="mr-2 h-4 w-4" />
                 {t('disconnectUserFromVoice')}
               </ContextMenuItem>
+              {voiceMoveTargets.map((channel) => (
+                <ContextMenuItem
+                  key={channel.id}
+                  onClick={() => void moveUser(channel.id, channel.name)}
+                >
+                  Move to {channel.name}
+                </ContextMenuItem>
+              ))}
             </>
           )}
         </div>

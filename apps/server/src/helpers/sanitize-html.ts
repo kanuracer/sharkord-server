@@ -31,6 +31,7 @@ const sanitizeMessageHtml = (html: string): string => {
         'data-type',
         'data-name',
         'data-user-id',
+        'data-role-id',
         'data-channel-id',
         'class'
       ],
