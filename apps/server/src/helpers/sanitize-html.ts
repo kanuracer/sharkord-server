@@ -52,7 +52,11 @@ const sanitizeMessageHtml = (html: string): string => {
         if (attribs['data-type'] === 'channel-reference') {
           const channelId = attribs['data-channel-id'];
 
-          if (!channelId || !/^[1-9]\d*$/.test(channelId)) {
+          if (
+            !channelId ||
+            !/^[1-9]\d*$/.test(channelId) ||
+            !Number.isSafeInteger(Number(channelId))
+          ) {
             return { tagName, attribs: {} };
           }
 

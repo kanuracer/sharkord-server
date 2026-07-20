@@ -181,4 +181,11 @@ describe('sanitize-html', () => {
 
     expect(sanitizeMessageHtml(input)).toBe('<span>#private-name</span>');
   });
+
+  test('should reject unsafe integer channel-reference identifiers', () => {
+    const input =
+      '<span data-type="channel-reference" data-channel-id="9007199254740992">#private-name</span>';
+
+    expect(sanitizeMessageHtml(input)).toBe('<span>#private-name</span>');
+  });
 });
