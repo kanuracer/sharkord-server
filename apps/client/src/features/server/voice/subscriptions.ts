@@ -5,9 +5,26 @@ import {
   addUserToVoiceChannel,
   removeExternalStreamFromVoiceChannel,
   removeUserFromVoiceChannel,
+  reconnectMovedVoice,
   updateExternalStreamInVoiceChannel,
   updateVoiceUserState
 } from './actions';
+import type { RtpCapabilities } from 'mediasoup-client/types';
+
+const subscribeToMovedVoice = (
+  init: (routerRtpCapabilities: RtpCapabilities, channelId: number) => Promise<void>
+) => {
+  const trpc = getTRPCClient();
+  const onMovedSub = trpc.voice.onMoved.subscribe(undefined, {
+    onData: ({ destinationChannelId }) => {
+      logDebug('[EVENTS] voice.onMoved', { destinationChannelId });
+      void reconnectMovedVoice(destinationChannelId, init);
+    },
+    onError: (err) => console.error('onMoved voice subscription error:', err)
+  });
+
+  return () => onMovedSub.unsubscribe();
+};
 
 const subscribeToVoice = () => {
   const trpc = getTRPCClient();
@@ -90,4 +107,4 @@ const subscribeToVoice = () => {
   };
 };
 
-export { subscribeToVoice };
+export { subscribeToMovedVoice, subscribeToVoice };

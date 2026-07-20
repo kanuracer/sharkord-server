@@ -3,6 +3,7 @@ import { useWebRtcSimulcastEnabled } from '@/features/server/hooks';
 import { playSound } from '@/features/server/sounds/actions';
 import { SoundType } from '@/features/server/types';
 import { useOwnVoiceState } from '@/features/server/voice/hooks';
+import { subscribeToMovedVoice } from '@/features/server/voice/subscriptions';
 import {
   clampMicrophoneDecibels,
   MICROPHONE_GATE_CLOSE_HOLD_MS,
@@ -1180,6 +1181,8 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
       startScreenShareStream,
       stopScreenShareStream
     });
+
+  useEffect(() => subscribeToMovedVoice(init), [init]);
 
   const setMicMutedForBridge = useCallback(
     async (muted: boolean) => {

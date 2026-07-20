@@ -9,6 +9,7 @@ import {
 } from '@/helpers/storage';
 import { getTRPCClient } from '@/lib/trpc';
 import {
+  ChannelType,
   getTrpcError,
   StreamKind,
   type TExternalStream,
@@ -21,6 +22,7 @@ import {
   setSelectedChannelId
 } from '../channels/actions';
 import {
+  channelByIdSelector,
   currentVoiceChannelIdSelector,
   selectedChannelIdSelector
 } from '../channels/selectors';
@@ -29,6 +31,8 @@ import { playSound } from '../sounds/actions';
 import { SoundType } from '../types';
 import { ownUserIdSelector } from '../users/selectors';
 import { ownVoiceStateSelector } from './selectors';
+
+export const VOICE_USER_DND_MIME = 'application/x-sharkord-voice-user';
 
 export const addUserToVoiceChannel = (
   userId: number,
@@ -181,6 +185,60 @@ export const joinVoice = async (
   }
 
   return undefined;
+};
+
+export const moveUserToVoiceChannel = async (
+  userId: number,
+  channelId: number
+): Promise<boolean> => {
+  const client = getTRPCClient();
+
+  try {
+    await client.voice.moveUser.mutate({ userId, destinationChannelId: channelId });
+    return true;
+  } catch (error) {
+    logVoice('Failed to move voice user', { error, userId, channelId });
+    toast.error(getTrpcError(error, 'Failed to move voice user'));
+    return false;
+  }
+};
+
+export const reconnectMovedVoice = async (
+  destinationChannelId: number,
+  init: (routerRtpCapabilities: RtpCapabilities, channelId: number) => Promise<void>
+): Promise<void> => {
+  const state = store.getState();
+  const channel = channelByIdSelector(state, destinationChannelId);
+
+  if (!channel || channel.type !== ChannelType.VOICE) {
+    logVoice('Ignoring moved voice event for unavailable voice channel', {
+      destinationChannelId
+    });
+    return;
+  }
+
+  logVoice('Reconnecting after directed voice move', { destinationChannelId });
+  setSelectedChannelId(channel.id);
+  const response = await joinVoice(channel.id);
+
+  if (!response) {
+    setSelectedChannelId(undefined);
+    logVoice('Failed to join directed voice move destination', {
+      destinationChannelId
+    });
+    return;
+  }
+
+  try {
+    await init(response, channel.id);
+  } catch (error) {
+    setSelectedChannelId(undefined);
+    logVoice('Failed to initialize directed voice move destination', {
+      error,
+      destinationChannelId
+    });
+    toast.error('Failed to initialize voice connection');
+  }
 };
 
 export type TLeaveVoiceReason =

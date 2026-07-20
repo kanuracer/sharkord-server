@@ -15,6 +15,10 @@ import {
   useVoiceUsersByChannelId
 } from '@/features/server/hooks';
 import { useVoiceChannelExternalStreamsList } from '@/features/server/voice/hooks';
+import {
+  moveUserToVoiceChannel,
+  VOICE_USER_DND_MIME
+} from '@/features/server/voice/actions';
 import { cn } from '@/lib/utils';
 import {
   SortableContext,
@@ -29,7 +33,7 @@ import {
   TestId
 } from '@sharkord/shared';
 import { Hash, Volume2 } from 'lucide-react';
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { ChannelContextMenu } from '../context-menus/channel';
 import { UnreadCount } from '../unread-count';
 import { ExternalStream } from './external-stream';
@@ -63,16 +67,68 @@ const Voice = memo(
     const hasUnreadMentions = useHasUnreadMentions(channel.id);
     const currentVoiceChannelId = useCurrentVoiceChannelId();
     const someoneIsSharingScreen = useHasSharingScreenUsers(channel.id);
+    const [isVoiceUserDropTarget, setIsVoiceUserDropTarget] = useState(false);
+    const [moveFeedback, setMoveFeedback] = useState<string>();
 
     const isVoiceActive = users.length > 0 || externalStreams.length > 0;
     const isOwnChannel = currentVoiceChannelId === channel.id;
+
+    const onVoiceUserDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+      if (!event.dataTransfer.types.includes(VOICE_USER_DND_MIME)) return;
+
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'move';
+      setIsVoiceUserDropTarget(true);
+    };
+
+    const onVoiceUserDrop = async (event: React.DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      setIsVoiceUserDropTarget(false);
+
+      if (!event.dataTransfer.types.includes(VOICE_USER_DND_MIME)) return;
+
+      try {
+        const { userId, sourceChannelId } = JSON.parse(
+          event.dataTransfer.getData(VOICE_USER_DND_MIME)
+        ) as { userId?: unknown; sourceChannelId?: unknown };
+
+        if (
+          typeof userId !== 'number' ||
+          !Number.isInteger(userId) ||
+          typeof sourceChannelId !== 'number' ||
+          !Number.isInteger(sourceChannelId) ||
+          sourceChannelId === channel.id
+        ) {
+          setMoveFeedback('Member is already in this voice channel');
+          return;
+        }
+
+        const moved = await moveUserToVoiceChannel(userId, channel.id);
+        setMoveFeedback(
+          moved
+            ? `Move requested for ${channel.name}`
+            : `Unable to move member to ${channel.name}`
+        );
+      } catch {
+        setMoveFeedback('Unable to read dragged voice member');
+      }
+    };
 
     return (
       <>
         <ItemWrapper
           {...props}
           isSelected={isSelected}
+          onDragOver={onVoiceUserDragOver}
+          onDragLeave={() => setIsVoiceUserDropTarget(false)}
+          onDrop={onVoiceUserDrop}
+          aria-label={
+            isVoiceUserDropTarget
+              ? `Move voice member to ${channel.name}`
+              : undefined
+          }
           className={cn(props.className, {
+            'ring-1 ring-primary bg-accent': isVoiceUserDropTarget,
             'text-blue-500':
               someoneIsSharingScreen && (isOwnChannel || isSelected),
             'text-green-500':
@@ -94,6 +150,11 @@ const Voice = memo(
           {unreadCount > 0 && (
             <UnreadCount count={unreadCount} hasMention={hasUnreadMentions} />
           )}
+          {moveFeedback && (
+            <span className="sr-only" aria-live="polite">
+              {moveFeedback}
+            </span>
+          )}
         </ItemWrapper>
         {channel.type === 'VOICE' && (
           <div
@@ -105,6 +166,7 @@ const Voice = memo(
                 key={user.id}
                 userId={user.id}
                 user={user}
+                sourceChannelId={channel.id}
                 isOwnChannel={isOwnChannel}
               />
             ))}
@@ -160,6 +222,10 @@ type TItemWrapperProps = {
   dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
   style?: React.CSSProperties;
   disabled?: boolean;
+  onDragOver?: React.DragEventHandler<HTMLDivElement>;
+  onDragLeave?: React.DragEventHandler<HTMLDivElement>;
+  onDrop?: React.DragEventHandler<HTMLDivElement>;
+  'aria-label'?: string;
 };
 
 const ItemWrapper = memo(
@@ -170,7 +236,11 @@ const ItemWrapper = memo(
     className,
     dragHandleProps,
     style,
-    disabled = false
+    disabled = false,
+    onDragOver,
+    onDragLeave,
+    onDrop,
+    'aria-label': ariaLabel
   }: TItemWrapperProps) => {
     return (
       <div
@@ -187,6 +257,10 @@ const ItemWrapper = memo(
           className
         )}
         onClick={disabled ? undefined : onClick}
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
+        aria-label={ariaLabel}
       >
         {children}
       </div>
