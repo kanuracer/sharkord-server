@@ -300,6 +300,52 @@ describe('voice router', () => {
     expect(capabilities.capabilities.voiceUserMove).toBe(true);
     expect(capabilities.capabilities.voiceUserDisconnect).toBe(true);
   });
+
+  test('should remove screen audio on user cleanup and exclude it from its own producer list', async () => {
+    const { caller } = await initTest(1);
+    const channelId = await caller.channels.add({
+      type: ChannelType.VOICE,
+      name: 'Screen Audio Cleanup',
+      categoryId: 2
+    });
+
+    await caller.voice.join({
+      channelId,
+      state: { micMuted: false, soundMuted: false }
+    });
+
+    const runtime = VoiceRuntime.findById(channelId)!;
+    const screenAudioProducer = {
+      closed: false,
+      kind: 'audio',
+      type: 'simple',
+      rtpParameters: { encodings: [] },
+      close() {
+        this.closed = true;
+        this.observer.emitClose();
+      },
+      observer: {
+        handlers: [] as Array<() => void>,
+        on(event: string, handler: () => void) {
+          if (event === 'close') this.handlers.push(handler);
+        },
+        emitClose() {
+          for (const handler of this.handlers) handler();
+        }
+      }
+    } as any;
+
+    runtime.addProducer(1, StreamKind.SCREEN_AUDIO, screenAudioProducer);
+
+    expect((await caller.voice.getProducers()).remoteScreenAudioIds).not.toContain(
+      1
+    );
+
+    runtime.removeUser(1);
+
+    expect(screenAudioProducer.closed).toBe(true);
+    expect(runtime.getProducer(StreamKind.SCREEN_AUDIO, 1)).toBeUndefined();
+  });
 });
 
 describe('dms router', () => {
