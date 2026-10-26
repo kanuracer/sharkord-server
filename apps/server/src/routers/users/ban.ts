@@ -38,12 +38,6 @@ const banRoute = protectedProcedure
       })
       .where(eq(users.id, input.userId));
 
-    await closeSocketsForUser(
-      input.userId,
-      DisconnectCode.BANNED,
-      input.reason
-    );
-
     publishUser(input.userId, 'update');
 
     enqueueActivityLog({
@@ -56,6 +50,13 @@ const banRoute = protectedProcedure
         bannedByIdentity: actor?.identity
       }
     });
+
+    // The ban is persisted/audited even if transport shutdown reports a failure.
+    await closeSocketsForUser(
+      input.userId,
+      DisconnectCode.BANNED,
+      input.reason
+    );
   });
 
 export { banRoute };

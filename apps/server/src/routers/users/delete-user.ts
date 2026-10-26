@@ -22,6 +22,7 @@ import { enqueueActivityLog } from '../../queues/activity-log';
 import { invariant } from '../../utils/invariant';
 import { pubsub } from '../../utils/pubsub';
 import { protectedProcedure } from '../../utils/trpc';
+import { closeSocketsForUser } from '../../utils/ws-client-registry';
 
 const ensureDeletedUser = async (): Promise<number> => {
   const existingDeletedUser = await getUserByIdentity(
@@ -94,12 +95,6 @@ const deleteUserRoute = protectedProcedure
       message: 'Cannot delete the deleted user placeholder.'
     });
 
-    const userWs = ctx.getUserWs(input.userId);
-
-    if (userWs) {
-      userWs.close(DisconnectCode.KICKED, 'Your account has been deleted');
-    }
-
     const deletedUserId = await ensureDeletedUser();
 
     await db.transaction(async (tx) => {
@@ -131,6 +126,12 @@ const deleteUserRoute = protectedProcedure
 
       await tx.delete(users).where(eq(users.id, input.userId));
     });
+
+    await closeSocketsForUser(
+      input.userId,
+      DisconnectCode.KICKED,
+      'Your account has been deleted'
+    );
 
     pubsub.publish(ServerEvents.USER_DELETE, {
       isWipe: input.wipe,

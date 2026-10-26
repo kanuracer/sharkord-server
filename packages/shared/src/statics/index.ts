@@ -10,9 +10,10 @@ export const TYPING_MS = 300;
 
 export enum DisconnectCode {
   UNEXPECTED = 1006,
-  KICKED = 40000,
-  BANNED = 40001,
-  SERVER_SHUTDOWN = 40002
+  // Private-use wire codes must stay in RFC 6455's 4000–4999 range.
+  KICKED = 4000,
+  BANNED = 4003,
+  SERVER_SHUTDOWN = 4002
 }
 
 export const DELETED_USER_IDENTITY_AND_NAME = '__deleted_user__'; // this will be used as identity AND name, but in the interface we render as "Deleted"

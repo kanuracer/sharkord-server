@@ -4,6 +4,7 @@ import { assertCanActOnUser } from '../../helpers/assert-can-act-on-user';
 import { enqueueActivityLog } from '../../queues/activity-log';
 import { invariant } from '../../utils/invariant';
 import { protectedProcedure } from '../../utils/trpc';
+import { closeSocketsForUser } from '../../utils/ws-client-registry';
 
 const kickRoute = protectedProcedure
   .input(
@@ -23,7 +24,11 @@ const kickRoute = protectedProcedure
       message: 'User is not connected'
     });
 
-    userWs.close(DisconnectCode.KICKED, input.reason);
+    await closeSocketsForUser(
+      input.userId,
+      DisconnectCode.KICKED,
+      input.reason
+    );
 
     enqueueActivityLog({
       type: ActivityLogType.USER_KICKED,

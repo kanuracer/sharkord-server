@@ -244,12 +244,16 @@ describe('users MFA router', () => {
       token: firstToken,
       userId: 2,
       readyState: WebSocket.OPEN,
+      once: () => {},
+      terminate: () => {},
       close: (code?: number, reason?: string) =>
         closeCalls.push({ code, reason })
     } as unknown as WebSocket;
     const secondSocket = {
       token: secondToken,
       readyState: WebSocket.OPEN,
+      once: () => {},
+      terminate: () => {},
       close: (code?: number, reason?: string) =>
         closeCalls.push({ code, reason })
     } as unknown as WebSocket;
@@ -257,6 +261,8 @@ describe('users MFA router', () => {
       token: otherToken,
       userId: 3,
       readyState: WebSocket.OPEN,
+      once: () => {},
+      terminate: () => {},
       close: (code?: number, reason?: string) =>
         closeCalls.push({ code, reason })
     } as unknown as WebSocket;
@@ -309,12 +315,16 @@ describe('users MFA router', () => {
     const matchingSocket = {
       token: matchingToken,
       readyState: WebSocket.OPEN,
+      once: () => {},
+      terminate: () => {},
       close: (code?: number, reason?: string) =>
         closeCalls.push({ code, reason })
     } as unknown as WebSocket;
     const passwordSocket = {
       token: passwordToken,
       readyState: WebSocket.OPEN,
+      once: () => {},
+      terminate: () => {},
       close: (code?: number, reason?: string) =>
         closeCalls.push({ code, reason })
     } as unknown as WebSocket;

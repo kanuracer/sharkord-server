@@ -21,14 +21,17 @@ import { enqueueActivityLog } from '../../queues/activity-log';
 import { enqueueLogin } from '../../queues/logins';
 import { VoiceRuntime } from '../../runtimes/voice';
 import { invariant } from '../../utils/invariant';
-import { rateLimitedProcedure, t } from '../../utils/trpc';
+import { rateLimitedProcedure, sessionMiddleware, t } from '../../utils/trpc';
 import { markConnectionTokenAuthenticated } from '../../utils/ws-auth-sessions';
 
-const joinServerRoute = rateLimitedProcedure(t.procedure, {
-  maxRequests: 5,
-  windowMs: 60_000,
-  logLabel: 'joinServer'
-})
+const joinServerRoute = rateLimitedProcedure(
+  t.procedure.use(sessionMiddleware),
+  {
+    maxRequests: 5,
+    windowMs: 60_000,
+    logLabel: 'joinServer'
+  }
+)
   .input(
     z.object({
       handshakeHash: z.string(),

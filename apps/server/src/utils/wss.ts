@@ -302,22 +302,23 @@ const createWsServer = async (server: http.Server) => {
 
             const user = await getUserById(userId);
 
-            if (!user) return;
-
-            const voiceRuntime = VoiceRuntime.findRuntimeByUserId(user.id);
+            const voiceRuntime = VoiceRuntime.findRuntimeByUserId(userId);
 
             if (voiceRuntime) {
-              voiceRuntime.removeUser(user.id);
-              await unpublishHiddenChannelFromUser(user.id, voiceRuntime.id);
+              voiceRuntime.removeUser(userId);
+              await unpublishHiddenChannelFromUser(userId, voiceRuntime.id);
 
               pubsub.publish(ServerEvents.USER_LEAVE_VOICE, {
                 channelId: voiceRuntime.id,
-                userId: user.id
+                userId
               });
             }
 
-            usersIpMap.delete(user.id);
-            pubsub.publish(ServerEvents.USER_LEAVE, user.id);
+            usersIpMap.delete(userId);
+            pubsub.publish(ServerEvents.USER_LEAVE, userId);
+
+            // Account deletion can commit before the transport close completes.
+            if (!user) return;
 
             logger.info('%s left the server', user.name);
 

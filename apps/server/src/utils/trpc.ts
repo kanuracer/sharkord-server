@@ -8,6 +8,7 @@ import { initTRPC, TRPCError } from '@trpc/server';
 import chalk from 'chalk';
 import type WebSocket from 'ws';
 import { config } from '../config';
+import { getUserByToken } from '../db/queries/users';
 import { logger } from '../logger';
 import type { TConnectionInfo } from '../types';
 import { invariant } from './invariant';
@@ -65,6 +66,15 @@ const timingMiddleware = t.middleware(async ({ path, next }) => {
   );
 
   return result;
+});
+
+// WSS contexts live for the connection, while account/session state can change.
+const sessionMiddleware = t.middleware(async ({ ctx, next }) => {
+  invariant(await getUserByToken(ctx.token), {
+    code: 'UNAUTHORIZED',
+    message: 'Invalid authentication token'
+  });
+  return next();
 });
 
 const authMiddleware = t.middleware(async ({ ctx, next }) => {
@@ -130,8 +140,17 @@ const rateLimitedProcedure = (
 // it prevents users that only are connected to the wss but did not join the server from accessing protected procedures
 const protectedProcedure = t.procedure
   .use(timingMiddleware)
+  .use(sessionMiddleware)
   .use(authMiddleware);
 
-const publicProcedure = t.procedure.use(timingMiddleware);
+const publicProcedure = t.procedure
+  .use(timingMiddleware)
+  .use(sessionMiddleware);
 
-export { protectedProcedure, publicProcedure, rateLimitedProcedure, t };
+export {
+  protectedProcedure,
+  publicProcedure,
+  rateLimitedProcedure,
+  sessionMiddleware,
+  t
+};
