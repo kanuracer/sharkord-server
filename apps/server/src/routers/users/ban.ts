@@ -5,6 +5,7 @@ import { db } from '../../db';
 import { publishUser } from '../../db/publishers';
 import { getUserById } from '../../db/queries/users';
 import { users } from '../../db/schema';
+import { assertCanActOnUser } from '../../helpers/assert-can-act-on-user';
 import { enqueueActivityLog } from '../../queues/activity-log';
 import { invariant } from '../../utils/invariant';
 import { protectedProcedure } from '../../utils/trpc';
@@ -19,6 +20,7 @@ const banRoute = protectedProcedure
   )
   .mutation(async ({ ctx, input }) => {
     await ctx.needsPermission(Permission.MANAGE_USERS);
+    await assertCanActOnUser(ctx.userId, input.userId);
 
     invariant(input.userId !== ctx.user.id, {
       code: 'BAD_REQUEST',

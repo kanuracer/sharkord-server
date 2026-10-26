@@ -10,8 +10,10 @@ import { z } from 'zod';
 import { db } from '../../db';
 import { syncRolePermissions } from '../../db/mutations/roles';
 import { publishRole } from '../../db/publishers';
+import { getRole } from '../../db/queries/roles';
 import { roles } from '../../db/schema';
 import { enqueueActivityLog } from '../../queues/activity-log';
+import { invariant } from '../../utils/invariant';
 import { protectedProcedure } from '../../utils/trpc';
 
 const updateRoleRoute = protectedProcedure
@@ -34,6 +36,17 @@ const updateRoleRoute = protectedProcedure
   )
   .mutation(async ({ ctx, input }) => {
     await ctx.needsPermission(Permission.MANAGE_ROLES);
+
+    const role = await getRole(input.roleId);
+    invariant(role, { code: 'NOT_FOUND', message: 'Role not found' });
+
+    const addedPermissions = input.permissions.filter(
+      (permission) => !role.permissions.includes(permission)
+    );
+    invariant(await ctx.hasPermission(addedPermissions), {
+      code: 'FORBIDDEN',
+      message: 'You cannot grant permissions that you do not have.'
+    });
 
     const updatedRole = await db
       .update(roles)

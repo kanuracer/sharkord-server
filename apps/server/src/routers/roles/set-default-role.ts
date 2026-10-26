@@ -34,6 +34,11 @@ const setDefaultRoleRoute = protectedProcedure
       message: 'Role not found'
     });
 
+    invariant(await ctx.hasPermission(newDefaultRole.permissions), {
+      code: 'FORBIDDEN',
+      message: 'You cannot assign a role with permissions that you do not have.'
+    });
+
     await db.transaction(async (tx) => {
       await tx
         .update(roles)

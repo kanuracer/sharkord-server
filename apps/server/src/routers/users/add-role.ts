@@ -3,7 +3,9 @@ import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../../db';
 import { publishUser } from '../../db/publishers';
+import { getRole } from '../../db/queries/roles';
 import { userRoles } from '../../db/schema';
+import { assertCanActOnUser } from '../../helpers/assert-can-act-on-user';
 import { invariant } from '../../utils/invariant';
 import { protectedProcedure } from '../../utils/trpc';
 import { assertCanModifyOwnerRole } from './assert-can-modify-owner-role';
@@ -17,6 +19,7 @@ const addRoleRoute = protectedProcedure
   )
   .mutation(async ({ ctx, input }) => {
     await ctx.needsPermission(Permission.MANAGE_USERS);
+    await assertCanActOnUser(ctx.userId, input.userId);
     const existing = await db
       .select()
       .from(userRoles)
@@ -34,6 +37,13 @@ const addRoleRoute = protectedProcedure
     });
 
     await assertCanModifyOwnerRole(ctx.userId, input.roleId, 'assign');
+
+    const role = await getRole(input.roleId);
+    invariant(role, { code: 'NOT_FOUND', message: 'Role not found' });
+    invariant(await ctx.hasPermission(role.permissions), {
+      code: 'FORBIDDEN',
+      message: 'You cannot assign a role with permissions that you do not have.'
+    });
 
     await db.insert(userRoles).values({
       userId: input.userId,

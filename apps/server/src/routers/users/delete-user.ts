@@ -17,6 +17,7 @@ import {
   messages,
   users
 } from '../../db/schema';
+import { assertCanActOnUser } from '../../helpers/assert-can-act-on-user';
 import { enqueueActivityLog } from '../../queues/activity-log';
 import { invariant } from '../../utils/invariant';
 import { pubsub } from '../../utils/pubsub';
@@ -64,6 +65,7 @@ const deleteUserRoute = protectedProcedure
   )
   .mutation(async ({ ctx, input }) => {
     await ctx.needsPermission(Permission.MANAGE_USERS);
+    await assertCanActOnUser(ctx.userId, input.userId);
 
     invariant(input.userId !== ctx.user.id, {
       code: 'BAD_REQUEST',
