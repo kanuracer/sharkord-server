@@ -43,7 +43,7 @@ const routeHandlers: Partial<
       '/healthz': (req, res) => healthRouteHandler(req, res),
       '/info': (req, res) => infoRouteHandler(req, res),
       '/manifest.json': (req, res) => manifestRouteHandler(req, res),
-      '/auth/oidc/config': (req, res, ctx) => oidcConfigRouteHandler(req, res, undefined)
+      '/auth/oidc/config': (req, res) => oidcConfigRouteHandler(req, res, undefined)
     },
     prefix: {
       '/public': (req, res) => publicRouteHandler(req, res),
@@ -56,7 +56,7 @@ const routeHandlers: Partial<
     exact: {
       '/upload': (req, res) => uploadFileRouteHandler(req, res),
       '/login': (req, res) => loginRouteHandler(req, res),
-      '/login/oidc': (req, res, ctx) => oidcLoginRouteHandler(req, res, undefined)
+      '/login/oidc': (req, res) => oidcLoginRouteHandler(req, res, undefined)
     },
     prefix: {
       '/webhooks': (req, res) => incomingWebhookRouteHandler(req, res)

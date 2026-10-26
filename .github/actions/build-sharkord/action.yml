@@ -5,7 +5,7 @@ inputs:
   bun_version:
     description: Bun version to install
     required: false
-    default: 1.3.14
+    default: 1.4.4
   bump:
     description: Version bump mode (none, patch, minor, major)
     required: false
@@ -14,6 +14,11 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Install Node for build tools
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22.23.4
+
     - name: Install Bun
       uses: oven-sh/setup-bun@v1
       with:
@@ -21,7 +26,9 @@ runs:
 
     - name: Install dependencies
       shell: bash
-      run: bun install
+      run: |
+        bun -e 'if (Bun.semver.order(Bun.version, "1.4.4") < 0) throw new Error("Bun 1.4.4 or newer is required")'
+        bun install --frozen-lockfile
 
     - name: Build app
       shell: bash

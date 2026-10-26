@@ -70,7 +70,7 @@ const normalizeClientIp = (value: string): string | undefined => {
 };
 
 const normalizeWildcardIpRange = (value: string): string | undefined => {
-  if (!/[\*%]/.test(value)) return undefined;
+  if (!/[*%]/.test(value)) return undefined;
 
   const parts = value.trim().split('.');
   if (parts.length !== 4) return undefined;

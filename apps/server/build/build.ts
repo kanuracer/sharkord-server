@@ -11,6 +11,9 @@ import {
   rmIfExists,
   type TTarget
 } from './helpers';
+import { assertBuildRuntime } from './runtime';
+
+assertBuildRuntime();
 
 const { values } = parseArgs({
   args: Bun.argv,

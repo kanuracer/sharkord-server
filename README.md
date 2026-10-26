@@ -4,7 +4,7 @@
 
   [![Version](https://img.shields.io/github/v/release/kanuracer/sharkord-server)](https://github.com/kanuracer/sharkord-server/releases)
   [![License](https://img.shields.io/github/license/Sharkord/sharkord)](LICENSE)
-  [![Bun](https://img.shields.io/badge/Bun-v1.3.14-green.svg)](https://bun.sh)
+  [![Bun](https://img.shields.io/badge/Bun-v1.4.4-green.svg)](https://bun.sh)
   [![Mediasoup](https://img.shields.io/badge/Mediasoup-v3.19.19-green.svg)](https://mediasoup.org)
 </div>
 
@@ -236,7 +236,8 @@ docker compose up -d
 
 Prerequisites:
 
-- Bun `1.3.14`
+- Bun `1.4.4` or newer (also required for compiling standalone binaries)
+- Node.js `22.23.4` for build tools
 - Docker with BuildKit/buildx if building container images
 
 Install dependencies and build app binaries:
@@ -248,6 +249,8 @@ bun run build
 ```
 
 Build Docker image from the repository root after the server build produced `apps/server/build/out/*`:
+
+Rebuild the binaries when updating Bun: changing the container base alone does not update the runtime embedded in standalone executables.
 
 ```bash
 docker build -t sharkord-server:local .

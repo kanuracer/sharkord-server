@@ -5,6 +5,7 @@ import {
 } from 'bun-sfe-autoupdater';
 import fs from 'fs/promises';
 import path from 'path';
+import { assertBuildRuntime } from './runtime';
 
 const buildScriptDir = import.meta.dir;
 const serverCwd = path.resolve(buildScriptDir, '..');
@@ -45,7 +46,7 @@ const unpack = async (tgzPath: string, outDir: string) => {
 
 const downloadMediasoupBinary = async (
   version: string,
-  target: Bun.Build.Target
+  target: Bun.Build.CompileTarget
 ) => {
   let url = `https://github.com/versatica/mediasoup/releases/download/${version}/`;
   let fileName = '';
@@ -131,10 +132,11 @@ const patchPackageJsons = async (newVersion: string) => {
 
 type TTarget = {
   out: string;
-  target: Bun.Build.Target;
+  target: Bun.Build.CompileTarget;
 };
 
 const compile = async ({ out, target }: TTarget) => {
+  assertBuildRuntime();
   const version = await getCurrentVersion();
   const mediasoupVersion = await getMediasoupVersion();
   const mediasoupBinary = await downloadMediasoupBinary(

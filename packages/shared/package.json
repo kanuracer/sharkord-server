@@ -1,6 +1,6 @@
 {
   "name": "@sharkord/shared",
-  "version": "0.0.24-kr.11",
+  "version": "0.0.24-kr.12",
   "type": "module",
   "private": true,
   "main": "src/index.ts",
@@ -33,6 +33,6 @@
     "js-sha256": "^0.11.1",
     "linkify-it": "^6.0.0",
     "mediasoup": "^3.19.9",
-    "zod": "^4.3.5"
+    "zod": "^4.6.6"
   }
 }
