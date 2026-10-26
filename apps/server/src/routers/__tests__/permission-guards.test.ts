@@ -26,6 +26,15 @@ const update = (roleId: number, permissions: Permission[]) => ({
 });
 
 describe('authorization guards', () => {
+  test('nonowner with every permission still cannot grant Owner via the default role', async () => {
+    await grant(...Object.values(Permission));
+    const { caller } = await initTest(2);
+    await expect(
+      caller.roles.setDefault({ roleId: OWNER_ROLE_ID })
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    expect((await getRole(2))?.isDefault).toBe(true);
+  });
+
   test('member cannot clear or replace server logo', async () => {
     const { caller } = await initTest(2);
     await expect(caller.others.changeLogo({})).rejects.toMatchObject({
@@ -113,13 +122,11 @@ describe('authorization guards', () => {
   });
   test('role manager can retain existing permissions and remove them without acquiring them', async () => {
     await grant(Permission.MANAGE_ROLES);
-    await tdb
-      .insert(rolePermissions)
-      .values({
-        roleId: 3,
-        permission: Permission.MANAGE_SETTINGS,
-        createdAt: Date.now()
-      });
+    await tdb.insert(rolePermissions).values({
+      roleId: 3,
+      permission: Permission.MANAGE_SETTINGS,
+      createdAt: Date.now()
+    });
     const { caller } = await initTest(2);
     await caller.roles.update(update(3, [Permission.MANAGE_SETTINGS]));
     expect((await getRole(3))?.weight).toBe(42);
@@ -128,13 +135,11 @@ describe('authorization guards', () => {
   });
   test('permissions from multiple actor roles may be granted', async () => {
     await grant(Permission.MANAGE_ROLES);
-    await tdb
-      .insert(rolePermissions)
-      .values({
-        roleId: 3,
-        permission: Permission.MANAGE_SETTINGS,
-        createdAt: Date.now()
-      });
+    await tdb.insert(rolePermissions).values({
+      roleId: 3,
+      permission: Permission.MANAGE_SETTINGS,
+      createdAt: Date.now()
+    });
     await tdb
       .insert(userRoles)
       .values({ userId: 2, roleId: 3, createdAt: Date.now() });
@@ -148,13 +153,11 @@ describe('authorization guards', () => {
   for (const target of [2, 3]) {
     test(`user manager cannot grant higher-privileged role to user ${target}`, async () => {
       await grant(Permission.MANAGE_USERS);
-      await tdb
-        .insert(rolePermissions)
-        .values({
-          roleId: 3,
-          permission: Permission.MANAGE_SETTINGS,
-          createdAt: Date.now()
-        });
+      await tdb.insert(rolePermissions).values({
+        roleId: 3,
+        permission: Permission.MANAGE_SETTINGS,
+        createdAt: Date.now()
+      });
       const before = await getUserRoleIds(target);
       const { caller } = await initTest(2);
       await expect(
@@ -192,13 +195,11 @@ describe('authorization guards', () => {
   });
   test('role manager cannot grant unowned permissions through default-role selection', async () => {
     await grant(Permission.MANAGE_ROLES);
-    await tdb
-      .insert(rolePermissions)
-      .values({
-        roleId: 3,
-        permission: Permission.MANAGE_SETTINGS,
-        createdAt: Date.now()
-      });
+    await tdb.insert(rolePermissions).values({
+      roleId: 3,
+      permission: Permission.MANAGE_SETTINGS,
+      createdAt: Date.now()
+    });
     const { caller } = await initTest(2);
     await expect(caller.roles.setDefault({ roleId: 3 })).rejects.toMatchObject({
       code: 'FORBIDDEN'

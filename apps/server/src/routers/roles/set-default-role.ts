@@ -8,6 +8,7 @@ import { roles } from '../../db/schema';
 import { enqueueActivityLog } from '../../queues/activity-log';
 import { invariant } from '../../utils/invariant';
 import { protectedProcedure } from '../../utils/trpc';
+import { assertCanModifyOwnerRole } from '../users/assert-can-modify-owner-role';
 
 const setDefaultRoleRoute = protectedProcedure
   .input(
@@ -33,6 +34,8 @@ const setDefaultRoleRoute = protectedProcedure
       code: 'NOT_FOUND',
       message: 'Role not found'
     });
+
+    await assertCanModifyOwnerRole(ctx.userId, input.roleId, 'assign');
 
     invariant(await ctx.hasPermission(newDefaultRole.permissions), {
       code: 'FORBIDDEN',

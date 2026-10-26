@@ -1,6 +1,6 @@
 {
   "name": "sharkord",
-  "version": "0.0.24-kr.13",
+  "version": "0.0.24-kr.14",
   "private": true,
   "engines": {
     "bun": ">=1.4.4"
